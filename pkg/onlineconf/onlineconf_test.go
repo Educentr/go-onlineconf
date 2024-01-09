@@ -40,7 +40,7 @@ func TestOnlineconfInstance_Get(t *testing.T) {
 	oi.byName["testModule"] = &Module{}
 
 	// Get a module by name
-	module := oi.Get("testModule")
+	module := oi.GetModule("testModule")
 
 	// Assert that the module is not nil
 	assert.NotNil(t, module)
@@ -53,7 +53,7 @@ func TestOnlineconfInstance_GetOrAdd(t *testing.T) {
 
 	testCDB.Generate(d+"/testModule.cdb", map[string][]byte{"bla": []byte("sblav")})
 	// Get or add a module by name
-	module, err := oi.GetOrAdd("testModule")
+	module, err := oi.GetOrAddModule("testModule")
 
 	// Assert that there is no error and the module is not nil
 	assert.NoError(t, err)

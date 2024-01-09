@@ -74,8 +74,8 @@ func TestCloneRelease(t *testing.T) {
 
 	// Check if the cloned context has the correct modules
 	for _, name := range oi.names {
-		module := clonedInstance.Get(name)
-		if module == nil || module.ro != true || module.name != name || module.filename != oi.Get(name).filename {
+		module := clonedInstance.GetModule(name)
+		if module == nil || module.ro != true || module.name != name || module.filename != oi.GetModule(name).filename {
 			t.Errorf("Unexpected cloned module: %v", module)
 		}
 	}
@@ -91,25 +91,11 @@ func TestCloneRelease(t *testing.T) {
 	}
 }
 func TestStopWatcher(t *testing.T) {
-	// Create a dummy OnlineconfInstance
-	oi := &OnlineconfInstance{watcher: OnlineconfWatcher{cancelCtx: func() {}}}
-
-	// Create a context with the OnlineconfInstance as a value
-	ctx := context.WithValue(context.Background(), ContextOnlineconfName, oi)
-
-	// Call the StopWatcher function
-	err := StopWatcher(ctx)
-
-	// Check if the error is nil
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
 	// Create a context without the OnlineconfInstance as a value
 	emptyCtx := context.Background()
 
 	// Call the StopWatcher function with the empty context
-	err = StopWatcher(emptyCtx)
+	err := StopWatcher(emptyCtx)
 
 	// Check if the error is not nil
 	if err == nil {
@@ -137,7 +123,7 @@ func TestRegisterCallback(t *testing.T) {
 	}
 
 	// Call the RegisterCallback function
-	err := RegisterCallback(ctx, module, params, callback)
+	err := RegisterSubscription(ctx, module, params, callback)
 
 	// Check if the error is nil
 	if err != nil {
@@ -146,7 +132,7 @@ func TestRegisterCallback(t *testing.T) {
 	}
 
 	// Check if the subscription was registered correctly
-	subscription := oi.Get(module).changeSubscription[0]
+	subscription := oi.GetModule(module).changeSubscription[0]
 	if subscription.path == nil || subscription.callback == nil {
 		t.Errorf("Unexpected subscription: %v", subscription)
 	}
@@ -160,6 +146,14 @@ func TestStartWatcher(t *testing.T) {
 
 	// Call the StartWatcher function
 	err := StartWatcher(ctx)
+
+	// Check if the error is nil
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Call the StopWatcher function
+	err = StopWatcher(ctx)
 
 	// Check if the error is nil
 	if err != nil {

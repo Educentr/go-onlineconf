@@ -26,6 +26,10 @@ func (m *Module) reopen(mmappedFile *mmap.ReaderAt) error {
 
 	callbacksToCall := []func() error{}
 	for _, subscription := range m.changeSubscription {
+		if subscription.path == nil {
+			callbacksToCall = append(callbacksToCall, subscription.callback)
+		}
+
 		for _, path := range subscription.path {
 			if path == "" {
 				callbacksToCall = append(callbacksToCall, subscription.callback)
@@ -72,7 +76,7 @@ func (m *Module) get(path string) (byte, []byte, error) {
 	data, err := m.cdb.Get([]byte(path))
 	if err != nil || len(data) == 0 {
 		if err != nil {
-			return 0, data, fmt.Errorf("Get %v:%v error: %v", m.filename, path, err)
+			return 0, data, fmt.Errorf("get %v:%v error: %v", m.filename, path, err)
 		}
 
 		return 0, data, nil

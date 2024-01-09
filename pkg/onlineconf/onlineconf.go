@@ -129,7 +129,7 @@ func (oi *OnlineconfInstance) watcherCallback(ctx context.Context) func(ev fsnot
 			initMutex.Lock()
 			defer initMutex.Unlock()
 
-			module, ok := oi.GetByFile(ev.Name)
+			module, ok := oi.GetModuleByFile(ev.Name)
 			if ok {
 				mmappedFile, err := oi.openMmapFile(ev.Name)
 				if err != nil {
@@ -169,7 +169,7 @@ func (oi *OnlineconfInstance) openMmapFile(path string) (*mmap.ReaderAt, error) 
 	return mmappedFile, nil
 }
 
-func (oi *OnlineconfInstance) GetByFile(fileName string) (*Module, bool) {
+func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (*Module, bool) {
 	if oi.ro {
 		// don't copy for faster
 		panic("unable to use GetByFile in readonly instance")
@@ -184,7 +184,7 @@ func (oi *OnlineconfInstance) GetByFile(fileName string) (*Module, bool) {
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) Get(name string) *Module {
+func (oi *OnlineconfInstance) GetModule(name string) *Module {
 	oi.Lock()
 	defer oi.Unlock()
 
@@ -196,7 +196,7 @@ func (oi *OnlineconfInstance) Get(name string) *Module {
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) GetOrAdd(name string) (*Module, error) {
+func (oi *OnlineconfInstance) GetOrAddModule(name string) (*Module, error) {
 	oi.Lock()
 	defer oi.Unlock()
 

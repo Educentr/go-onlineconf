@@ -53,7 +53,7 @@ func Clone(from, to context.Context) (context.Context, error) {
 	defer initMutex.Unlock()
 
 	for _, name := range existsModules {
-		m := instance.Get(name)
+		m := instance.GetModule(name)
 		if m == nil {
 			return nil, fmt.Errorf("module %s not found", name)
 		}
@@ -96,7 +96,7 @@ func Release(main, cloned context.Context) error {
 	defer initMutex.Unlock()
 
 	for _, name := range clonedInstance.names {
-		m := clonedInstance.Get(name)
+		m := clonedInstance.GetModule(name)
 		mainInstance.decRefcount(m.mmappedFile)
 	}
 
@@ -125,11 +125,29 @@ func StopWatcher(ctx context.Context) error {
 	return instance.StopWatcher()
 }
 
-func RegisterCallback(ctx context.Context, module string, params []string, callback func() error) error {
+func RegisterSubscription(ctx context.Context, module string, params []string, callback func() error) error {
 	instance := FromContext(ctx)
 	if instance == nil {
 		return fmt.Errorf("can't get instance from context")
 	}
 
 	return instance.RegisterSubscription(module, params, callback)
+}
+
+func GetModule(ctx context.Context, name string) (*Module, error) {
+	instance := FromContext(ctx)
+	if instance == nil {
+		return nil, fmt.Errorf("can't get instance from context")
+	}
+
+	return instance.GetModule(name), nil
+}
+
+func GetOrAddModule(ctx context.Context, name string) (*Module, error) {
+	instance := FromContext(ctx)
+	if instance == nil {
+		return nil, fmt.Errorf("can't get instance from context")
+	}
+
+	return instance.GetOrAddModule(name)
 }

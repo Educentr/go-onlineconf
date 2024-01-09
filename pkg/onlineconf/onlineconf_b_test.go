@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,10 +24,36 @@ func BenchmarkClone(b *testing.B) {
 	}
 }
 
-func BenchmarkGetStringIfExists(b *testing.B) {
+func BenchmarkGetStringIfExistsCtx(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		onlineconf.GetStringIfExists(globalCtx, "bla")
 	}
+}
+
+func BenchmarkGetStringIfExistsDirect(b *testing.B) {
+	inst := onlineconf.Create(onlineconf.WithConfigDir(tmpConfDir))
+	m, _ := inst.GetOrAddModule("TREE")
+	for i := 0; i < b.N; i++ {
+		m.GetStringIfExists("bla")
+	}
+}
+
+type callbackStatus struct {
+	status bool
+	sync.Mutex
+}
+
+func (c *callbackStatus) callback() error {
+	c.Lock()
+	defer c.Unlock()
+	c.status = true
+	return nil
+}
+
+func (c *callbackStatus) getStatus() bool {
+	c.Lock()
+	defer c.Unlock()
+	return c.status
 }
 
 func TestGetDefaultModuleB(t *testing.T) {
@@ -46,9 +73,9 @@ func TestGetDefaultModuleB(t *testing.T) {
 		t.Error("invalid value", v)
 	}
 
-	callbackCalled := false
+	status := callbackStatus{}
 
-	onlineconf.RegisterCallback(globalCtx, "TREE", []string{"bla"}, func() error { callbackCalled = true; return nil })
+	onlineconf.RegisterSubscription(globalCtx, "TREE", []string{"bla"}, status.callback)
 
 	newCtx := context.Background()
 	newCtx, _ = onlineconf.Clone(globalCtx, newCtx)
@@ -56,7 +83,7 @@ func TestGetDefaultModuleB(t *testing.T) {
 	testCDB.Generate(path.Join(tmpConfDir, "TREE.cdb"), map[string][]byte{"bla": []byte("sblav1")})
 	time.Sleep(time.Millisecond * 100)
 
-	if !callbackCalled {
+	if !status.getStatus() {
 		t.Error("callback not called")
 	}
 
@@ -80,7 +107,7 @@ func TestGetDefaultModuleB(t *testing.T) {
 
 	onlineconf.Release(globalCtx, newCtx)
 
-	m := onlineconf.FromContext(newCtx).Get("TREE")
+	m := onlineconf.FromContext(newCtx).GetModule("TREE")
 	if m != nil {
 		t.Errorf("module exists after release")
 	}

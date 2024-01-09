@@ -12,6 +12,7 @@ type OnlineconfWatcher struct {
 	sync.Mutex
 	watcher   *fsnotify.Watcher
 	cancelCtx context.CancelFunc
+	doneChan  chan struct{}
 	path      string
 }
 
@@ -45,7 +46,11 @@ func (ow *OnlineconfWatcher) start(path string, callback func(fsnotify.Event), e
 
 	watcherCtx, ow.cancelCtx = context.WithCancel(context.Background())
 
+	ow.doneChan = make(chan struct{})
+
 	go func() {
+		defer close(ow.doneChan)
+
 		for {
 			select {
 			case ev := <-ow.watcher.Events:
@@ -62,6 +67,10 @@ func (ow *OnlineconfWatcher) start(path string, callback func(fsnotify.Event), e
 }
 
 func (ow *OnlineconfWatcher) stopWatcher() error {
+	if ow.doneChan == nil {
+		return fmt.Errorf("can't stop inactive watcher")
+	}
+
 	ow.Lock()
 	defer ow.Unlock()
 
@@ -70,8 +79,10 @@ func (ow *OnlineconfWatcher) stopWatcher() error {
 	}
 
 	ow.cancelCtx()
+	<-ow.doneChan
 	ow.watcher = nil
 	ow.cancelCtx = nil
+	ow.doneChan = nil
 
 	return nil
 }
