@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	testCDB "gitlab.educentr.info/godev/onlinecof-test/test"
+	testCDB "github.com/Nikolo/go-onlineconf/test"
 )
 
 const tmpConfDir = "/tmp/onlineconf/"

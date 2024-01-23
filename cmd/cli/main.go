@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.educentr.info/godev/onlinecof-test/pkg/onlineconf"
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconf"
 )
 
 func mainCtx() {

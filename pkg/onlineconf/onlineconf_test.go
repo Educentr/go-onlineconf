@@ -3,8 +3,8 @@ package onlineconf
 import (
 	"testing"
 
+	testCDB "github.com/Nikolo/go-onlineconf/test"
 	"github.com/stretchr/testify/assert"
-	testCDB "gitlab.educentr.info/godev/onlinecof-test/test"
 )
 
 func TestOnlineconfInstance_RegisterSubscription(t *testing.T) {

@@ -1,4 +1,4 @@
-module gitlab.educentr.info/godev/onlinecof-test
+module github.com/Nikolo/go-onlineconf
 
 go 1.21.5
 

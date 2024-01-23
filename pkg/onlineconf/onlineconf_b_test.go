@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.educentr.info/godev/onlinecof-test/pkg/onlineconf"
-	testCDB "gitlab.educentr.info/godev/onlinecof-test/test"
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconf"
+	testCDB "github.com/Nikolo/go-onlineconf/test"
 )
 
 const tmpConfDir = "/tmp/onlineconf/"
