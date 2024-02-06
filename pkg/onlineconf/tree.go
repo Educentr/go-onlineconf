@@ -119,7 +119,9 @@ func (oi *OnlineconfInstance) GetString(path string, d ...string) (string, error
 		return "", fmt.Errorf("can't get TREE module: %w", err)
 	}
 
-	return m.GetString(path, d...)
+	ret, err := m.GetString(path, d...)
+
+	return ret, err
 }
 
 // GetInt reads an integer value of a named parameter from the module "TREE".

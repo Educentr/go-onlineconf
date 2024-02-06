@@ -1,47 +1,15 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"flag"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconf"
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconf_dev"
 )
 
-func mainCtx() {
-	ctx, err := onlineconf.Initialize(context.Background())
-	if err != nil {
-		fmt.Printf("Error initialize onlineconf: %s", err)
-		return
-	}
-
-	v, ex, err := onlineconf.GetStringIfExists(ctx, "/testapp/bla")
-	if err != nil {
-		fmt.Printf("Error while geting param: %s\n", err)
-		return
-	}
-
-	if !ex {
-		fmt.Printf("String does not exists\n")
-		return
-	}
-
-	fmt.Printf("Value %+v\n", v)
-}
-
 func main() {
-	oc := onlineconf.Create()
-	v, ex, err := oc.GetStringIfExists("/testapp/bla")
-
-	if err != nil {
-		fmt.Printf("Error while geting param: %s\n", err)
-		return
-	}
-
-	if !ex {
-		fmt.Printf("String does not exists\n")
-		return
-	}
-
-	fmt.Printf("Value %s\n", v)
-
+	flag.String("yaml", "./configs/onlineconf.yml", "path to the yaml file")
+	flag.String("dir", "/usr/local/etc/onlineconf", "path to the directory where the cdb files will be stored")
+	flag.String("module", "TREE", "module name")
+	flag.Parse()
+	onlineconf_dev.GenerateCDBFromYaml(flag.Lookup("dir").Value.String(), flag.Lookup("module").Value.String(), flag.Lookup("yaml").Value.String())
 }

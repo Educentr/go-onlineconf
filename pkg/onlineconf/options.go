@@ -1,23 +1,44 @@
 package onlineconf
 
-type Option interface {
-	apply(*OnlineconfInstance)
-}
+import (
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+)
 
-type options func(*OnlineconfInstance)
+type options func(onlineconfInterface.Instance)
 
-func (o options) apply(oi *OnlineconfInstance) {
+func (o options) Apply(oi onlineconfInterface.Instance) {
 	o(oi)
 }
 
-func WithLogger(logger OnlineconfLogger) Option {
-	return options(func(oi *OnlineconfInstance) {
+func WithLogger(logger onlineconfInterface.Logger) onlineconfInterface.Option {
+	return options(func(oii onlineconfInterface.Instance) {
+		oi, ok := oii.(*OnlineconfInstance)
+		if !ok {
+			panic("onlineconf: invalid instance type")
+		}
+
 		oi.logger = logger
 	})
 }
 
-func WithConfigDir(path string) Option {
-	return options(func(oi *OnlineconfInstance) {
+func WithConfigDir(path string) onlineconfInterface.Option {
+	return options(func(oii onlineconfInterface.Instance) {
+		oi, ok := oii.(*OnlineconfInstance)
+		if !ok {
+			panic("onlineconf: invalid instance type")
+		}
+
 		oi.configDir = path
+	})
+}
+
+func WithModules(moduleNames []string, required bool) onlineconfInterface.Option {
+	return options(func(oi onlineconfInterface.Instance) {
+		for _, moduleName := range moduleNames {
+			m, err := oi.GetOrAddModule(moduleName)
+			if (required && m == nil) || err != nil {
+				panic("onlineconf: `" + moduleName + "` module not found or error + " + err.Error())
+			}
+		}
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
 	"golang.org/x/exp/mmap"
 )
 
@@ -41,8 +42,8 @@ func TestCloneRelease(t *testing.T) {
 	oi := &OnlineconfInstance{
 		ro:           false,
 		logger:       nil,
-		byName:       map[string]*Module{"module1": {name: "module1", filename: "/etc/onlineconf/module1.conf", mmappedFile: oneOfMmapedFile}, "module2": {name: "module2", filename: "/etc/onlineconf/module2.conf", mmappedFile: &mmap.ReaderAt{}}},
-		byFile:       map[string]*Module{"/etc/onlineconf/module1.conf": {name: "module1", filename: "/etc/onlineconf/module1.conf", mmappedFile: oneOfMmapedFile}, "/etc/onlineconf/module2.conf": {name: "module2", filename: "/etc/onlineconf/module2.conf", mmappedFile: &mmap.ReaderAt{}}},
+		byName:       map[string]onlineconfInterface.Module{"module1": &Module{name: "module1", filename: "/etc/onlineconf/module1.conf", mmappedFile: oneOfMmapedFile}, "module2": &Module{name: "module2", filename: "/etc/onlineconf/module2.conf", mmappedFile: &mmap.ReaderAt{}}},
+		byFile:       map[string]onlineconfInterface.Module{"/etc/onlineconf/module1.conf": &Module{name: "module1", filename: "/etc/onlineconf/module1.conf", mmappedFile: oneOfMmapedFile}, "/etc/onlineconf/module2.conf": &Module{name: "module2", filename: "/etc/onlineconf/module2.conf", mmappedFile: &mmap.ReaderAt{}}},
 		names:        []string{"module1", "module2"},
 		mmappedFiles: map[string]*mmapedFiles{oneOfMmapedFileAddr: {reader: &mmap.ReaderAt{}, refcount: 1}},
 	}
@@ -74,8 +75,19 @@ func TestCloneRelease(t *testing.T) {
 
 	// Check if the cloned context has the correct modules
 	for _, name := range oi.names {
-		module := clonedInstance.GetModule(name)
-		if module == nil || module.ro != true || module.name != name || module.filename != oi.GetModule(name).filename {
+		moduleI := clonedInstance.GetModule(name)
+		module, ok := moduleI.(*Module)
+		if !ok {
+			t.Errorf("Unexpected module: %v", moduleI)
+		}
+
+		oiModuleI := oi.GetModule(name)
+		oiModule, ok := oiModuleI.(*Module)
+		if !ok {
+			t.Errorf("Unexpected module: %v", oiModuleI)
+		}
+
+		if module == nil || module.ro != true || module.name != name || module.filename != oiModule.filename {
 			t.Errorf("Unexpected cloned module: %v", module)
 		}
 	}
@@ -107,7 +119,7 @@ func TestRegisterCallback(t *testing.T) {
 
 	// Create a dummy OnlineconfInstance
 	oi := &OnlineconfInstance{
-		byName: map[string]*Module{module: {name: module, filename: "/etc/onlineconf/" + module + ".conf", mmappedFile: &mmap.ReaderAt{}}},
+		byName: map[string]onlineconfInterface.Module{module: &Module{name: module, filename: "/etc/onlineconf/" + module + ".conf", mmappedFile: &mmap.ReaderAt{}}},
 	}
 
 	// Create a context with the OnlineconfInstance as a value
@@ -132,7 +144,18 @@ func TestRegisterCallback(t *testing.T) {
 	}
 
 	// Check if the subscription was registered correctly
-	subscription := oi.GetModule(module).changeSubscription[0]
+	oiModuleI := oi.GetModule(module)
+	oiModule, ok := oiModuleI.(*Module)
+	if !ok {
+		t.Errorf("Unexpected module: %v", oiModuleI)
+	}
+
+	subscriptionI := oiModule.changeSubscription[0]
+	subscription, ok := subscriptionI.(*SubscriptionCallback)
+	if !ok {
+		t.Errorf("Unexpected subscription: %v", subscriptionI)
+	}
+
 	if subscription.path == nil || subscription.callback == nil {
 		t.Errorf("Unexpected subscription: %v", subscription)
 	}

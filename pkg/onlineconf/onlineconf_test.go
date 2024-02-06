@@ -1,15 +1,25 @@
 package onlineconf
 
 import (
+	"context"
+	"os"
 	"testing"
+	"time"
 
-	testCDB "github.com/Nikolo/go-onlineconf/test"
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconf_dev"
 	"github.com/stretchr/testify/assert"
 )
 
+const tmpConfDir = "/tmp/onlineconf/"
+
+var _ = os.Mkdir(tmpConfDir, os.ModePerm)
+
 func TestOnlineconfInstance_RegisterSubscription(t *testing.T) {
 	// Create a new OnlineconfInstance
-	oi := Create()
+	oi, ok := Create().(*OnlineconfInstance)
+	if !ok {
+		t.Errorf("Unexpected instance: %v", oi)
+	}
 
 	// Define the module name, parameters, and callback function
 	module := "testModule"
@@ -28,14 +38,27 @@ func TestOnlineconfInstance_RegisterSubscription(t *testing.T) {
 	// Assert that there is no error
 	assert.NoError(t, err)
 
-	if oi.byName[module].changeSubscription[0].path[0] != "param1" {
+	oiModule, ok := oi.byName[module].(*Module)
+	if !ok {
+		t.Errorf("Unexpected module: %v", oi.byName[module])
+	}
+
+	subscription, ok := oiModule.changeSubscription[0].(*SubscriptionCallback)
+	if !ok {
+		t.Errorf("Unexpected subscription: %v", oiModule.changeSubscription[0])
+	}
+
+	if subscription.path[0] != "param1" {
 		assert.Fail(t, "Unexpected subscription path")
 	}
 }
 
 func TestOnlineconfInstance_Get(t *testing.T) {
 	// Create a new OnlineconfInstance
-	oi := Create()
+	oi, ok := Create().(*OnlineconfInstance)
+	if !ok {
+		t.Errorf("Unexpected instance: %v", oi)
+	}
 
 	oi.byName["testModule"] = &Module{}
 
@@ -46,18 +69,167 @@ func TestOnlineconfInstance_Get(t *testing.T) {
 	assert.NotNil(t, module)
 }
 
-func TestOnlineconfInstance_GetOrAdd(t *testing.T) {
-	d := t.TempDir()
-	// Create a new OnlineconfInstance
-	oi := Create(WithConfigDir(d))
+func TestGetDefaultModuleW(t *testing.T) {
+	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	testCDB.Generate(d+"/testModule.cdb", map[string][]byte{"bla": []byte("sblav")})
-	// Get or add a module by name
-	module, err := oi.GetOrAddModule("testModule")
+	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav"})
+	err := StartWatcher(globalCtx)
+	if err != nil {
+		t.Errorf("can't start watcher: %s", err)
+	}
 
-	// Assert that there is no error and the module is not nil
-	assert.NoError(t, err)
-	assert.NotNil(t, module)
+	v, err := GetString(globalCtx, "bla")
+	if err != nil {
+		t.Error("error get string", err)
+	}
+
+	if v != "blav" {
+		t.Error("invalid value", v)
+	}
+
+	newCtx := context.Background()
+	newCtx, _ = Clone(globalCtx, newCtx)
+
+	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav1"})
+	time.Sleep(time.Millisecond * 100)
+
+	v, err = GetString(globalCtx, "bla")
+	if err != nil {
+		t.Error("error get string after update", err)
+	}
+
+	if v != "blav1" {
+		t.Error("invalid value after update", v)
+	}
+
+	v, err = GetString(newCtx, "bla")
+	if err != nil {
+		t.Error("error get string", err)
+	}
+
+	if v != "blav" {
+		t.Error("invalid value", v)
+	}
+
+	err = Release(globalCtx, newCtx)
+	if err != nil {
+		t.Errorf("error release: %s", err)
+	}
+
+	instance := FromContext(newCtx)
+	m := instance.GetModule("TREE")
+	if m != nil {
+		t.Errorf("module exists after release")
+	}
+
+	instance = FromContext(globalCtx)
+	if len(instance.mmappedFiles) != 1 {
+		t.Errorf("invalid mmaped size: %d", len(instance.mmappedFiles))
+	}
+
+	if err = StopWatcher(globalCtx); err != nil {
+		t.Errorf("can't sdtop watcher: %s", err)
+	}
+
+	if instance.watcher.watcher != nil {
+		t.Errorf("watcher exists after stop")
+	}
 }
 
-// Add more test cases for other functions in the OnlineconfInstance struct
+func TestGetNonDefaultModuleW(t *testing.T) {
+	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
+
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav"})
+	err := StartWatcher(globalCtx)
+	if err != nil {
+		t.Errorf("can't start watcher: %s", err)
+	}
+
+	m, err := GetOrAddModule(globalCtx, "module1")
+	if err != nil {
+		t.Error("error get string", err)
+	}
+
+	v, err := m.GetString("bla")
+	if err != nil {
+		t.Error("error get string", err)
+	}
+
+	if v != "blav" {
+		t.Error("invalid value", v)
+	}
+
+	newCtx := context.Background()
+	newCtx, _ = Clone(globalCtx, newCtx)
+
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav1"})
+	time.Sleep(time.Millisecond * 100)
+
+	v, err = m.GetString("bla")
+	if err != nil {
+		t.Error("error get string after update", err)
+	}
+
+	if v != "blav1" {
+		t.Error("invalid value after update", v)
+	}
+
+	instance := FromContext(newCtx)
+
+	mNew := instance.GetModule("module1")
+
+	v, err = mNew.GetString("bla")
+	if err != nil {
+		t.Error("error get string", err)
+	}
+
+	if v != "blav" {
+		t.Error("invalid value", v)
+	}
+
+	err = Release(globalCtx, newCtx)
+	if err != nil {
+		t.Errorf("error release: %s", err)
+	}
+
+	m = instance.GetModule("module1")
+	if m != nil {
+		t.Errorf("module exists after release")
+	}
+
+	instance = FromContext(globalCtx)
+	if len(instance.mmappedFiles) != 1 {
+		t.Errorf("invalid mmaped size: %d", len(instance.mmappedFiles))
+	}
+
+	if err = StopWatcher(globalCtx); err != nil {
+		t.Errorf("can't sdtop watcher: %s", err)
+	}
+
+	if instance.watcher.watcher != nil {
+		t.Errorf("watcher exists after stop")
+	}
+}
+
+func TestGetNonDefaultModuleDirectW(t *testing.T) {
+	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
+
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav"})
+	instance := FromContext(globalCtx)
+
+	m, err := instance.GetOrAddModule("module1")
+	if err != nil {
+		t.Errorf("Error while geting module: %s\n", err)
+		return
+	}
+
+	v, err := m.GetString("bla")
+	if err != nil {
+		t.Errorf("Error while geting param: %s\n", err)
+		return
+	}
+
+	if v != "blav" {
+		t.Errorf("invalid value: %s\n", v)
+	}
+}

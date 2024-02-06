@@ -1,10 +1,10 @@
 package onlineconf
 
 import (
-	"context"
 	"errors"
 	"sync"
 
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
 	"github.com/colinmarc/cdb"
 	"golang.org/x/exp/mmap"
 )
@@ -20,12 +20,6 @@ var ErrUnavailableModifyRefcountRO = errors.New("can't modify refcount in RO ins
 const defaultConfigDir = "/usr/local/etc/onlineconf"
 const DefaultModule = "TREE"
 
-type OnlineconfLogger interface {
-	Warn(ctx context.Context, msg string, args ...any)
-	Error(ctx context.Context, msg string, args ...any)
-	Fatal(ctx context.Context, msg string, args ...any)
-}
-
 type mmapedFiles struct {
 	reader   *mmap.ReaderAt
 	refcount uint
@@ -33,11 +27,11 @@ type mmapedFiles struct {
 
 type OnlineconfInstance struct {
 	sync.Mutex
-	logger       OnlineconfLogger
+	logger       onlineconfInterface.Logger
 	ro           bool
 	names        []string
-	byName       map[string]*Module
-	byFile       map[string]*Module
+	byName       map[string]onlineconfInterface.Module
+	byFile       map[string]onlineconfInterface.Module
 	watcher      OnlineconfWatcher
 	configDir    string
 	mmappedFiles map[string]*mmapedFiles
@@ -57,5 +51,5 @@ type Module struct {
 	cache              map[string][]interface{}
 	cacheMutex         sync.RWMutex
 	mmappedFile        *mmap.ReaderAt
-	changeSubscription []SubscriptionCallback
+	changeSubscription []onlineconfInterface.SubscriptionCallback
 }

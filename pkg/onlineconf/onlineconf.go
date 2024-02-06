@@ -8,9 +8,11 @@ package onlineconf
 import (
 	"context"
 	"fmt"
+	"log"
 	"path"
 	"sync"
 
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
 	"github.com/fsnotify/fsnotify"
 	"golang.org/x/exp/mmap"
 )
@@ -18,7 +20,7 @@ import (
 var initMutex sync.Mutex
 
 // Initialize sets config directory for onlineconf modules.
-func Create(options ...Option) *OnlineconfInstance {
+func Create(options ...onlineconfInterface.Option) onlineconfInterface.Instance {
 	initMutex.Lock()
 	defer initMutex.Unlock()
 
@@ -26,18 +28,29 @@ func Create(options ...Option) *OnlineconfInstance {
 
 	inst := &OnlineconfInstance{
 		logger:       logger,
-		byName:       make(map[string]*Module),
-		byFile:       make(map[string]*Module),
+		byName:       make(map[string]onlineconfInterface.Module),
+		byFile:       make(map[string]onlineconfInterface.Module),
 		names:        make([]string, 0, startModuleCountSize),
 		configDir:    defaultConfigDir,
 		mmappedFiles: make(map[string]*mmapedFiles, startModuleCountSize),
 	}
 
 	for _, opt := range options {
-		opt.apply(inst)
+		opt.Apply(inst)
 	}
 
 	return inst
+}
+
+func (oi *OnlineconfInstance) GetModuleNames() []string {
+	oi.Lock()
+	defer oi.Unlock()
+
+	return oi.names
+}
+
+func (oi *OnlineconfInstance) GetConfigDir() string {
+	return oi.configDir
 }
 
 func (oi *OnlineconfInstance) RegisterSubscription(module string, params []string, callback func() error) error {
@@ -50,7 +63,7 @@ func (oi *OnlineconfInstance) RegisterSubscription(module string, params []strin
 		return fmt.Errorf("can't register callback for module %s. Module does not exists", module)
 	}
 
-	mod.RegisterSubscription(SubscriptionCallback{path: params, callback: callback})
+	mod.RegisterSubscription(NewSubscription(params, callback))
 
 	return nil
 }
@@ -60,6 +73,7 @@ func (oi *OnlineconfInstance) StartWatcher(ctx context.Context) error {
 		return ErrUnavailableInRO
 	}
 
+	log.Printf("StartWatcher: %s", oi.configDir)
 	if err := oi.watcher.start(oi.configDir, oi.watcherCallback(ctx), func(err error) { oi.logger.Error(ctx, "watcher error", err) }); err != nil {
 		return fmt.Errorf("can't start watcher: %w", err)
 	}
@@ -133,13 +147,13 @@ func (oi *OnlineconfInstance) watcherCallback(ctx context.Context) func(ev fsnot
 			if ok {
 				mmappedFile, err := oi.openMmapFile(ev.Name)
 				if err != nil {
-					oi.logger.Error(ctx, "errro mmap open module:", err)
+					oi.logger.Error(ctx, "error mmap open module:", err)
 					return
 				}
 
-				oldMmaped := module.mmappedFile
+				oldMmaped, err := module.Reopen(mmappedFile)
 
-				if err := module.reopen(mmappedFile); err != nil {
+				if err != nil {
 					oi.decRefcount(mmappedFile)
 					oi.logger.Error(ctx, "error inc refcunt mmap:", err)
 					return
@@ -169,7 +183,7 @@ func (oi *OnlineconfInstance) openMmapFile(path string) (*mmap.ReaderAt, error) 
 	return mmappedFile, nil
 }
 
-func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (*Module, bool) {
+func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (onlineconfInterface.Module, bool) {
 	if oi.ro {
 		// don't copy for faster
 		panic("unable to use GetByFile in readonly instance")
@@ -184,7 +198,7 @@ func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (*Module, bool) {
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) GetModule(name string) *Module {
+func (oi *OnlineconfInstance) GetModule(name string) onlineconfInterface.Module {
 	oi.Lock()
 	defer oi.Unlock()
 
@@ -196,7 +210,7 @@ func (oi *OnlineconfInstance) GetModule(name string) *Module {
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) GetOrAddModule(name string) (*Module, error) {
+func (oi *OnlineconfInstance) GetOrAddModule(name string) (onlineconfInterface.Module, error) {
 	oi.Lock()
 	defer oi.Unlock()
 
@@ -221,9 +235,67 @@ func (oi *OnlineconfInstance) GetOrAddModule(name string) (*Module, error) {
 	oi.byName[name] = ocModule
 	oi.names = append(oi.names, name)
 
-	if err = ocModule.reopen(mmapedFile); err != nil {
+	if _, err = ocModule.Reopen(mmapedFile); err != nil {
 		return nil, fmt.Errorf("error add module: %w", err)
 	}
 
 	return ocModule, nil
+}
+
+func (oi *OnlineconfInstance) Clone() (onlineconfInterface.Instance, error) {
+	if oi.ro {
+		return nil, fmt.Errorf("can't clone RO instance")
+	}
+
+	existsModules := oi.names
+
+	newInstance := &OnlineconfInstance{
+		ro:     true,
+		logger: oi.logger,
+		byName: make(map[string]onlineconfInterface.Module, len(existsModules)),
+		names:  oi.names,
+	}
+
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	for _, name := range existsModules {
+		m := oi.GetModule(name)
+		if m == nil {
+			return nil, fmt.Errorf("module %s not found", name)
+		}
+
+		if err := oi.incRefcount(m.GetMmappedFile()); err != nil {
+			return nil, err
+		}
+
+		newInstance.byName[name] = m.Clone(name)
+	}
+
+	return newInstance, nil
+}
+
+func (oi *OnlineconfInstance) Release(cloned onlineconfInterface.Instance) error {
+	if oi.ro {
+		return fmt.Errorf("invalid main instance (RO)")
+	}
+
+	clonedInstance, ok := cloned.(*OnlineconfInstance)
+	if !ok {
+		return fmt.Errorf("invalid cloned instance")
+	}
+
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	for _, name := range clonedInstance.GetModuleNames() {
+		m := cloned.GetModule(name)
+		oi.decRefcount(m.GetMmappedFile())
+	}
+
+	clonedInstance.names = []string{}
+	clonedInstance.byFile = map[string]onlineconfInterface.Module{}
+	clonedInstance.byName = map[string]onlineconfInterface.Module{}
+
+	return nil
 }

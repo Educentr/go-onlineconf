@@ -7,47 +7,63 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
 	"github.com/colinmarc/cdb"
 	"golang.org/x/exp/mmap"
 )
 
-func (m *Module) reopen(mmappedFile *mmap.ReaderAt) error {
+func (m *Module) Clone(name string) onlineconfInterface.Module {
+	return &Module{
+		ro:          true,
+		name:        name,
+		filename:    m.filename,
+		cache:       make(map[string][]interface{}, startCacheSize),
+		cdb:         m.cdb,
+		mmappedFile: m.mmappedFile,
+	}
+}
+
+func (m *Module) GetMmappedFile() *mmap.ReaderAt {
+	return m.mmappedFile
+}
+
+func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 	if m.ro {
-		return fmt.Errorf("unable to use Reopen in readonly instance")
+		return nil, fmt.Errorf("unable to use Reopen in readonly instance")
 	}
 
 	m.Lock()
-	defer m.Unlock()
 
 	cdb, err := cdb.New(mmappedFile, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	callbacksToCall := []func() error{}
 	for _, subscription := range m.changeSubscription {
-		if subscription.path == nil {
-			callbacksToCall = append(callbacksToCall, subscription.callback)
+		if subscription.GetPaths() == nil {
+			callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 		}
 
-		for _, path := range subscription.path {
+		for _, path := range subscription.GetPaths() {
 			if path == "" {
-				callbacksToCall = append(callbacksToCall, subscription.callback)
+				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 				continue
 			}
 
 			new, newErr := cdb.Get([]byte(path))
 			old, oldErr := m.cdb.Get([]byte(path))
 			if newErr != oldErr {
-				callbacksToCall = append(callbacksToCall, subscription.callback)
+				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			} else if len(new) != len(old) {
-				callbacksToCall = append(callbacksToCall, subscription.callback)
+				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			} else if len(new) > 0 && (new[0] != old[0] || new[1] != old[1]) {
-				callbacksToCall = append(callbacksToCall, subscription.callback)
+				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			}
 		}
 	}
 
+	oldMmappedFile := m.mmappedFile
 	m.mmappedFile = mmappedFile
 	m.cdb = cdb
 
@@ -55,14 +71,16 @@ func (m *Module) reopen(mmappedFile *mmap.ReaderAt) error {
 	m.cache = map[string][]interface{}{}
 	m.cacheMutex.Unlock()
 
+	m.Unlock()
+
 	for _, callback := range callbacksToCall {
 		callback()
 	}
 
-	return nil
+	return oldMmappedFile, nil
 }
 
-func (m *Module) RegisterSubscription(subscription SubscriptionCallback) {
+func (m *Module) RegisterSubscription(subscription onlineconfInterface.SubscriptionCallback) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -152,7 +170,7 @@ func (m *Module) GetBoolIfExists(path string) (bool, bool, error) {
 func (m *Module) GetString(path string, d ...string) (string, error) {
 	val, ok, err := m.GetStringIfExists(path)
 	if err != nil {
-		return "", err
+		return d[0], err
 	}
 
 	if ok {
@@ -171,7 +189,7 @@ func (m *Module) GetString(path string, d ...string) (string, error) {
 func (m *Module) GetInt(path string, d ...int) (int, error) {
 	val, ok, err := m.GetIntIfExists(path)
 	if err != nil {
-		return 0, err
+		return d[0], err
 	}
 
 	if ok {
@@ -190,7 +208,7 @@ func (m *Module) GetInt(path string, d ...int) (int, error) {
 func (m *Module) GetBool(path string, d ...bool) (bool, error) {
 	val, ok, err := m.GetBoolIfExists(path)
 	if err != nil {
-		return false, err
+		return d[0], err
 	}
 
 	if ok {
@@ -217,7 +235,7 @@ func (m *Module) GetStrings(path string, defaultValue []string) ([]string, error
 
 	format, data, err := m.get(path)
 	if err != nil {
-		return nil, err
+		return defaultValue, err
 	}
 
 	switch format {

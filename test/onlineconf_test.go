@@ -3,13 +3,13 @@ package onlineconf_test
 import (
 	"context"
 	"os"
-	"path"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/Nikolo/go-onlineconf/pkg/onlineconf"
-	testCDB "github.com/Nikolo/go-onlineconf/test"
+	"github.com/Nikolo/go-onlineconf/pkg/onlineconf_dev"
+	"github.com/stretchr/testify/assert"
 )
 
 const tmpConfDir = "/tmp/onlineconf/"
@@ -57,7 +57,7 @@ func (c *callbackStatus) getStatus() bool {
 }
 
 func TestGetDefaultModuleB(t *testing.T) {
-	testCDB.Generate(path.Join(tmpConfDir, "TREE.cdb"), map[string][]byte{"bla": []byte("sblav")})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav"})
 
 	err := onlineconf.StartWatcher(globalCtx)
 	if err != nil {
@@ -80,7 +80,7 @@ func TestGetDefaultModuleB(t *testing.T) {
 	newCtx := context.Background()
 	newCtx, _ = onlineconf.Clone(globalCtx, newCtx)
 
-	testCDB.Generate(path.Join(tmpConfDir, "TREE.cdb"), map[string][]byte{"bla": []byte("sblav1")})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav1"})
 	time.Sleep(time.Millisecond * 100)
 
 	if !status.getStatus() {
@@ -115,4 +115,18 @@ func TestGetDefaultModuleB(t *testing.T) {
 	if err = onlineconf.StopWatcher(globalCtx); err != nil {
 		t.Errorf("can't sdtop watcher: %s", err)
 	}
+}
+
+func TestOnlineconfInstance_GetOrAdd(t *testing.T) {
+	d := t.TempDir()
+	// Create a new OnlineconfInstance
+	oi := onlineconf.Create(onlineconf.WithConfigDir(d))
+
+	onlineconf_dev.GenerateCDB(d, "testModule", map[string]interface{}{"bla": "sblav"})
+	// Get or add a module by name
+	module, err := oi.GetOrAddModule("testModule")
+
+	// Assert that there is no error and the module is not nil
+	assert.NoError(t, err)
+	assert.NotNil(t, module)
 }
