@@ -90,8 +90,10 @@ func TestGetDefaultModuleW(t *testing.T) {
 	newCtx := context.Background()
 	newCtx, _ = Clone(globalCtx, newCtx)
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav1"})
-	time.Sleep(time.Millisecond * 100)
+	err = onlineconf_dev.ReopenWaiter(FromContext(globalCtx), "TREE", map[string]interface{}{"bla": "blav1"})
+	if err != nil {
+		t.Errorf("can't reopen waiter: %s", err)
+	}
 
 	v, err = GetString(globalCtx, "bla")
 	if err != nil {
@@ -139,13 +141,13 @@ func TestGetDefaultModuleW(t *testing.T) {
 func TestGetNonDefaultModuleW(t *testing.T) {
 	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{"bla": "blav"})
 	err := StartWatcher(globalCtx)
 	if err != nil {
 		t.Errorf("can't start watcher: %s", err)
 	}
 
-	m, err := GetOrAddModule(globalCtx, "module1")
+	m, err := GetOrAddModule(globalCtx, "module3")
 	if err != nil {
 		t.Error("error get string", err)
 	}
@@ -162,7 +164,7 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 	newCtx := context.Background()
 	newCtx, _ = Clone(globalCtx, newCtx)
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav1"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{"bla": "blav1"})
 	time.Sleep(time.Millisecond * 100)
 
 	v, err = m.GetString("bla")
@@ -176,7 +178,7 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 
 	instance := FromContext(newCtx)
 
-	mNew := instance.GetModule("module1")
+	mNew := instance.GetModule("module3")
 
 	v, err = mNew.GetString("bla")
 	if err != nil {
@@ -192,7 +194,7 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 		t.Errorf("error release: %s", err)
 	}
 
-	m = instance.GetModule("module1")
+	m = instance.GetModule("module3")
 	if m != nil {
 		t.Errorf("module exists after release")
 	}
@@ -214,10 +216,10 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 func TestGetNonDefaultModuleDirectW(t *testing.T) {
 	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module1", map[string]interface{}{"bla": "blav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module4", map[string]interface{}{"bla": "blav"})
 	instance := FromContext(globalCtx)
 
-	m, err := instance.GetOrAddModule("module1")
+	m, err := instance.GetOrAddModule("module4")
 	if err != nil {
 		t.Errorf("Error while geting module: %s\n", err)
 		return

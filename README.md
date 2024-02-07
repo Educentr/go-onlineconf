@@ -8,7 +8,7 @@ go-onlineconf can work with context or with instanse of OnlineConf client direct
 
 ### Work with context
 
-go-onlineconf has function for work with context.
+go-onlineconf has functions for work with context.
 
 #### Initialize
 

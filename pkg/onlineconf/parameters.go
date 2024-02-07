@@ -12,5 +12,6 @@ func MakePath(s ...string) string {
 	for i, v := range s {
 		s[i] = strings.Trim(v, "/")
 	}
+
 	return "/" + strings.Join(s, "/")
 }

@@ -8,7 +8,6 @@ package onlineconf
 import (
 	"context"
 	"fmt"
-	"log"
 	"path"
 	"sync"
 
@@ -73,7 +72,6 @@ func (oi *OnlineconfInstance) StartWatcher(ctx context.Context) error {
 		return ErrUnavailableInRO
 	}
 
-	log.Printf("StartWatcher: %s", oi.configDir)
 	if err := oi.watcher.start(oi.configDir, oi.watcherCallback(ctx), func(err error) { oi.logger.Error(ctx, "watcher error", err) }); err != nil {
 		return fmt.Errorf("can't start watcher: %w", err)
 	}

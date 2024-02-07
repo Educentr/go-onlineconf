@@ -3,7 +3,6 @@ package onlineconf
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -55,13 +54,10 @@ func (ow *OnlineconfWatcher) start(path string, callback func(fsnotify.Event), e
 		for {
 			select {
 			case ev := <-ow.watcher.Events:
-				log.Printf("fsnotify event: %s", ev.String())
 				callback(ev)
 			case err := <-ow.watcher.Errors:
-				log.Printf("fsnotify error: %s", err.Error())
 				errorCallback(err)
 			case <-watcherCtx.Done():
-				log.Printf("fsnotify watcher stopped")
 				return
 			}
 		}

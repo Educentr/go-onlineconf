@@ -10,7 +10,7 @@ func (o optionsDev) Apply(oi onlineconfInterface.Instance) {
 	o(oi)
 }
 
-func WithGenerateFromYAML(moduleName, path string) onlineconfInterface.Option {
+func WithGenerateFromYAML(moduleName, path string) func(onlineconfInterface.Instance) {
 	return optionsDev(func(oi onlineconfInterface.Instance) {
 		GenerateCDBFromYaml(oi.GetConfigDir(), moduleName, path)
 	})

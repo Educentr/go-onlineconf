@@ -37,6 +37,26 @@ func TestMakePath(t *testing.T) {
 			args: args{s: []string{"foo.bar", "baz/qux"}},
 			want: "/foo.bar/baz/qux",
 		},
+		{
+			name: "Path with special characters",
+			args: args{s: []string{"/foo.bar", "/baz/qux"}},
+			want: "/foo.bar/baz/qux",
+		},
+		{
+			name: "Path with special characters",
+			args: args{s: []string{"foo.bar", "/baz/qux"}},
+			want: "/foo.bar/baz/qux",
+		},
+		{
+			name: "Path with special characters",
+			args: args{s: []string{"/foo.bar/", "/baz/qux"}},
+			want: "/foo.bar/baz/qux",
+		},
+		{
+			name: "Path with special characters",
+			args: args{s: []string{"/foo.bar/", "/baz/", "/qux/"}},
+			want: "/foo.bar/baz/qux",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

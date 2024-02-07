@@ -39,10 +39,16 @@ func GenerateCDB(dir, modulename string, m map[string]interface{}) {
 	}
 
 	for k, v := range m {
-		writer.Put([]byte(k), Encode(v))
+		if err := writer.Put([]byte(k), Encode(v)); err != nil {
+			panic(err)
+		}
 	}
 
-	writer.Close()
+	if err := writer.Close(); err != nil {
+		panic(err)
+	}
 
-	os.Rename(path.Join(dir, modulename+".tmp"), path.Join(dir, modulename))
+	if err := os.Rename(path.Join(dir, modulename+".tmp"), path.Join(dir, modulename)); err != nil {
+		panic(err)
+	}
 }

@@ -11,7 +11,7 @@ import (
 
 type waiter struct {
 	ch      chan struct{}
-	version int
+	version int32
 }
 
 var reopenWaiter = struct {
@@ -27,7 +27,7 @@ func ReopenWaiter(oc onlineconfInterface.Instance, module string, newConf map[st
 	if _, ex := reopenWaiter.waiters[module]; !ex {
 		reopenWaiter.waiters[module] = &waiter{ch: make(chan struct{})}
 
-		oc.RegisterSubscription(module, []string{"waiter"}, func() error {
+		if err := oc.RegisterSubscription(module, []string{"waiter"}, func() error {
 			reopenWaiter.Lock()
 			defer reopenWaiter.Unlock()
 
@@ -36,15 +36,17 @@ func ReopenWaiter(oc onlineconfInterface.Instance, module string, newConf map[st
 				return nil
 			}
 
-			if reopenWaiter.waiters[module].version == v && len(reopenWaiter.waiters[module].ch) == 0 {
+			if reopenWaiter.waiters[module].version == int32(v) && len(reopenWaiter.waiters[module].ch) == 0 {
 				reopenWaiter.waiters[module].ch <- struct{}{}
 			}
 
 			return nil
-		})
+		}); err != nil {
+			return fmt.Errorf("can't register subscription: %w", err)
+		}
 	}
 
-	waiterInt := rand.Int()
+	waiterInt := rand.Int31()
 	newConf["waiter"] = waiterInt
 
 	if reopenWaiter.waiters[module].version == 0 {
@@ -67,6 +69,5 @@ func ReopenWaiter(oc onlineconfInterface.Instance, module string, newConf map[st
 		return nil
 	case <-timer.C:
 		return fmt.Errorf("timeout")
-
 	}
 }

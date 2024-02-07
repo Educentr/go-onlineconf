@@ -53,11 +53,12 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 
 			new, newErr := cdb.Get([]byte(path))
 			old, oldErr := m.cdb.Get([]byte(path))
+
 			if newErr != oldErr {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			} else if len(new) != len(old) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-			} else if len(new) > 0 && (new[0] != old[0] || new[1] != old[1]) {
+			} else if len(new) > 0 && string(new) != string(old) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			}
 		}

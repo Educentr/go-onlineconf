@@ -14,6 +14,8 @@ func Encode(i interface{}) []byte {
 	switch v := i.(type) {
 	case string:
 		return []byte("s" + v)
+	case int32:
+		return []byte("s" + strconv.Itoa(int(v)))
 	case int:
 		return []byte("s" + strconv.Itoa(v))
 	case bool:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Nikolo/go-onlineconf/pkg/onlineconf"
 	"github.com/Nikolo/go-onlineconf/pkg/onlineconf_dev"
@@ -12,7 +13,7 @@ import (
 
 func TestReopenWaiter(t *testing.T) {
 	tmpLogFile := "/tmp/onlineconfLogger.log"
-	tmpDir := "/tmp/onlineconf"
+	tmpDir, _ := os.MkdirTemp("", "onlineconf*")
 
 	os.Remove(tmpLogFile)
 
@@ -25,22 +26,25 @@ func TestReopenWaiter(t *testing.T) {
 
 	val, err := inst.GetString("/some/log/level")
 	require.NoError(t, err, "can't get string")
-	require.Equal(t, val, "debug")
+	require.Equal(t, "debug", val)
 
 	testConfig["/some/log/level"] = "info"
-	onlineconf_dev.ReopenWaiter(inst, "TREE", testConfig)
+	err = onlineconf_dev.ReopenWaiter(inst, "TREE", testConfig)
+	require.NoError(t, err, "reopen waiter error")
 
 	val, err = inst.GetString("/some/log/level")
 	require.NoError(t, err, "can't get string")
-	require.Equal(t, val, "info")
+	require.Equal(t, "info", val)
 
 	testConfig["/some/foo"] = "bar"
 	onlineconf_dev.GenerateCDB(tmpDir, "TREE", testConfig)
+	time.Sleep(time.Microsecond * 100)
 
 	testConfig["/some/log/level"] = "debug"
-	onlineconf_dev.ReopenWaiter(inst, "TREE", testConfig)
+	err = onlineconf_dev.ReopenWaiter(inst, "TREE", testConfig)
+	require.NoError(t, err, "reopen waiter error")
 
 	val, err = inst.GetString("/some/log/level")
 	require.NoError(t, err, "can't get string")
-	require.Equal(t, val, "debug")
+	require.Equal(t, "debug", val)
 }

@@ -1,0 +1,43 @@
+run:
+  go: '1.20'
+  timeout: 30m
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bodyclose
+    - contextcheck
+    - unused
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exportloopref
+    - forcetypeassert
+    - goconst
+    - gocritic
+    - gofmt
+    - ireturn
+    - staticcheck
+    - bodyclose
+    - makezero
+    - misspell
+    - prealloc
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - unparam
+    - wastedassign
+    - whitespace
+    - goimports
+    - revive
+    - gocritic
+linters-settings:
+  lll:
+    line-length: 120
+  revive:
+    ignore-generated-header: true
+  gocritic:
+    disabled-tags:
+      - style
+

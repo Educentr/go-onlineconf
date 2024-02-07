@@ -12,25 +12,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const tmpConfDir = "/tmp/onlineconf/"
-
-var _ = os.Mkdir(tmpConfDir, os.ModePerm)
-
-var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
-
 func BenchmarkClone(b *testing.B) {
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
+	var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
 	for i := 0; i < b.N; i++ {
 		onlineconf.Clone(globalCtx, context.Background())
 	}
 }
 
 func BenchmarkGetStringIfExistsCtx(b *testing.B) {
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
+	var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
 	for i := 0; i < b.N; i++ {
 		onlineconf.GetStringIfExists(globalCtx, "bla")
 	}
 }
 
 func BenchmarkGetStringIfExistsDirect(b *testing.B) {
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
 	inst := onlineconf.Create(onlineconf.WithConfigDir(tmpConfDir))
 	m, _ := inst.GetOrAddModule("TREE")
 	for i := 0; i < b.N; i++ {
@@ -57,6 +56,9 @@ func (c *callbackStatus) getStatus() bool {
 }
 
 func TestGetDefaultModuleB(t *testing.T) {
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
+	var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
+
 	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav"})
 
 	err := onlineconf.StartWatcher(globalCtx)
@@ -118,11 +120,11 @@ func TestGetDefaultModuleB(t *testing.T) {
 }
 
 func TestOnlineconfInstance_GetOrAdd(t *testing.T) {
-	d := t.TempDir()
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
 	// Create a new OnlineconfInstance
-	oi := onlineconf.Create(onlineconf.WithConfigDir(d))
+	oi := onlineconf.Create(onlineconf.WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(d, "testModule", map[string]interface{}{"bla": "sblav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "testModule", map[string]interface{}{"bla": "sblav"})
 	// Get or add a module by name
 	module, err := oi.GetOrAddModule("testModule")
 
