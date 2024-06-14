@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconf_dev"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconf_dev"
 	"github.com/stretchr/testify/assert"
 )
 

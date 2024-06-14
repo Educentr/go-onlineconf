@@ -1,7 +1,7 @@
 package onlineconf_dev
 
 import (
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 )
 
 type optionsDev func(onlineconfInterface.Instance)

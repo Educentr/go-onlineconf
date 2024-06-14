@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 	"github.com/colinmarc/cdb"
 	"golang.org/x/exp/mmap"
 )

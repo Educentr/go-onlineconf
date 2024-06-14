@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 	"golang.org/x/exp/mmap"
 )
 

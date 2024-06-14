@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 )
 
 type waiter struct {

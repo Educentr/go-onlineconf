@@ -1,6 +1,6 @@
 package onlineconf
 
-import "github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+import "github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 
 func NewSubscription(params []string, callback func() error) onlineconfInterface.SubscriptionCallback {
 	return &SubscriptionCallback{path: params, callback: callback}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nikolo/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 )
 
 type ctxKey uint8
