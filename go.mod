@@ -1,4 +1,4 @@
-module github.com/Nikolo/go-onlineconf
+module github.com/Educentr/go-onlineconf
 
 go 1.21.5
 
