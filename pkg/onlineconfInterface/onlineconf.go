@@ -23,10 +23,10 @@ type SubscriptionCallback interface {
 
 type Module interface {
 	GetStringIfExists(string) (string, bool, error)
-	GetIntIfExists(string) (int, bool, error)
+	GetIntIfExists(string) (int64, bool, error)
 	GetBoolIfExists(string) (bool, bool, error)
 	GetString(string, ...string) (string, error)
-	GetInt(string, ...int) (int, error)
+	GetInt(string, ...int64) (int64, error)
 	GetBool(string, ...bool) (bool, error)
 	GetStrings(string, []string) ([]string, error)
 	GetStruct(string, interface{}) (bool, error)
@@ -46,13 +46,13 @@ type Instance interface {
 	GetModuleNames() []string
 	GetOrAddModule(string) (Module, error)
 	GetStringIfExists(string) (string, bool, error)
-	GetIntIfExists(string) (int, bool, error)
+	GetIntIfExists(string) (int64, bool, error)
 	GetBoolIfExists(string) (bool, bool, error)
 	GetString(string, ...string) (string, error)
-	GetInt(string, ...int) (int, error)
+	GetInt(string, ...int64) (int64, error)
 	GetBool(string, ...bool) (bool, error)
 	GetStrings(string, []string) ([]string, error)
 	GetStruct(string, interface{}) (bool, error)
 	Clone() (Instance, error)
-	Release(Instance) error
+	Release(context.Context, Instance) error
 }

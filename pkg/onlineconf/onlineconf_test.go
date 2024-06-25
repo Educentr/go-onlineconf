@@ -16,10 +16,7 @@ var _ = os.Mkdir(tmpConfDir, os.ModePerm)
 
 func TestOnlineconfInstance_RegisterSubscription(t *testing.T) {
 	// Create a new OnlineconfInstance
-	oi, ok := Create().(*OnlineconfInstance)
-	if !ok {
-		t.Errorf("Unexpected instance: %v", oi)
-	}
+	oi := Create()
 
 	// Define the module name, parameters, and callback function
 	module := "testModule"
@@ -55,10 +52,7 @@ func TestOnlineconfInstance_RegisterSubscription(t *testing.T) {
 
 func TestOnlineconfInstance_Get(t *testing.T) {
 	// Create a new OnlineconfInstance
-	oi, ok := Create().(*OnlineconfInstance)
-	if !ok {
-		t.Errorf("Unexpected instance: %v", oi)
-	}
+	oi := Create()
 
 	oi.byName["testModule"] = &Module{}
 
@@ -69,33 +63,38 @@ func TestOnlineconfInstance_Get(t *testing.T) {
 	assert.NotNil(t, module)
 }
 
+const (
+	key   = "bla"
+	value = "blav"
+)
+
 func TestGetDefaultModuleW(t *testing.T) {
 	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{"bla": "blav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "TREE", map[string]interface{}{key: value})
 	err := StartWatcher(globalCtx)
 	if err != nil {
 		t.Errorf("can't start watcher: %s", err)
 	}
 
-	v, err := GetString(globalCtx, "bla")
+	v, err := GetString(globalCtx, key)
 	if err != nil {
 		t.Error("error get string", err)
 	}
 
-	if v != "blav" {
+	if v != value {
 		t.Error("invalid value", v)
 	}
 
 	newCtx := context.Background()
 	newCtx, _ = Clone(globalCtx, newCtx)
 
-	err = onlineconf_dev.ReopenWaiter(FromContext(globalCtx), "TREE", map[string]interface{}{"bla": "blav1"})
+	err = onlineconf_dev.ReopenWaiter(FromContext(globalCtx), "TREE", map[string]interface{}{value: "blav1"})
 	if err != nil {
 		t.Errorf("can't reopen waiter: %s", err)
 	}
 
-	v, err = GetString(globalCtx, "bla")
+	v, err = GetString(globalCtx, value)
 	if err != nil {
 		t.Error("error get string after update", err)
 	}
@@ -104,12 +103,12 @@ func TestGetDefaultModuleW(t *testing.T) {
 		t.Error("invalid value after update", v)
 	}
 
-	v, err = GetString(newCtx, "bla")
+	v, err = GetString(newCtx, key)
 	if err != nil {
 		t.Error("error get string", err)
 	}
 
-	if v != "blav" {
+	if v != value {
 		t.Error("invalid value", v)
 	}
 
@@ -141,7 +140,7 @@ func TestGetDefaultModuleW(t *testing.T) {
 func TestGetNonDefaultModuleW(t *testing.T) {
 	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{"bla": "blav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{value: value})
 	err := StartWatcher(globalCtx)
 	if err != nil {
 		t.Errorf("can't start watcher: %s", err)
@@ -152,22 +151,22 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 		t.Error("error get string", err)
 	}
 
-	v, err := m.GetString("bla")
+	v, err := m.GetString(value)
 	if err != nil {
 		t.Error("error get string", err)
 	}
 
-	if v != "blav" {
+	if v != value {
 		t.Error("invalid value", v)
 	}
 
 	newCtx := context.Background()
 	newCtx, _ = Clone(globalCtx, newCtx)
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{"bla": "blav1"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module3", map[string]interface{}{value: "blav1"})
 	time.Sleep(time.Millisecond * 100)
 
-	v, err = m.GetString("bla")
+	v, err = m.GetString(value)
 	if err != nil {
 		t.Error("error get string after update", err)
 	}
@@ -180,12 +179,12 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 
 	mNew := instance.GetModule("module3")
 
-	v, err = mNew.GetString("bla")
+	v, err = mNew.GetString(value)
 	if err != nil {
 		t.Error("error get string", err)
 	}
 
-	if v != "blav" {
+	if v != value {
 		t.Error("invalid value", v)
 	}
 
@@ -216,22 +215,22 @@ func TestGetNonDefaultModuleW(t *testing.T) {
 func TestGetNonDefaultModuleDirectW(t *testing.T) {
 	var globalCtx, _ = Initialize(context.Background(), WithConfigDir(tmpConfDir))
 
-	onlineconf_dev.GenerateCDB(tmpConfDir, "module4", map[string]interface{}{"bla": "blav"})
+	onlineconf_dev.GenerateCDB(tmpConfDir, "module4", map[string]interface{}{value: value})
 	instance := FromContext(globalCtx)
 
 	m, err := instance.GetOrAddModule("module4")
 	if err != nil {
-		t.Errorf("Error while geting module: %s\n", err)
+		t.Errorf("Error while getting module: %s\n", err)
 		return
 	}
 
-	v, err := m.GetString("bla")
+	v, err := m.GetString(value)
 	if err != nil {
-		t.Errorf("Error while geting param: %s\n", err)
+		t.Errorf("Error while getting param: %s\n", err)
 		return
 	}
 
-	if v != "blav" {
+	if v != value {
 		t.Errorf("invalid value: %s\n", v)
 	}
 }

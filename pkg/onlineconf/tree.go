@@ -15,7 +15,7 @@ func GetStringIfExists(ctx context.Context, path string) (string, bool, error) {
 // GetIntIfExists reads an integer value of a named parameter from the module "TREE".
 // It returns this value and the boolean true if the parameter exists and is an integer.
 // In the other case it returns the boolean false and 0.
-func GetIntIfExists(ctx context.Context, path string) (int, bool, error) {
+func GetIntIfExists(ctx context.Context, path string) (int64, bool, error) {
 	return FromContext(ctx).GetIntIfExists(path)
 }
 
@@ -38,7 +38,7 @@ func GetString(ctx context.Context, path string, d ...string) (string, error) {
 // It returns this value if the parameter exists and is an integer.
 // In the other case it panics unless default value is provided in
 // the second argument.
-func GetInt(ctx context.Context, path string, d ...int) (int, error) {
+func GetInt(ctx context.Context, path string, d ...int64) (int64, error) {
 	return FromContext(ctx).GetInt(path, d...)
 }
 
@@ -88,7 +88,7 @@ func (oi *OnlineconfInstance) GetStringIfExists(path string) (string, bool, erro
 // GetIntIfExists reads an integer value of a named parameter from the module "TREE".
 // It returns this value and the boolean true if the parameter exists and is an integer.
 // In the other case it returns the boolean false and 0.
-func (oi *OnlineconfInstance) GetIntIfExists(path string) (int, bool, error) {
+func (oi *OnlineconfInstance) GetIntIfExists(path string) (int64, bool, error) {
 	m, err := oi.GetOrAddModule(DefaultModule)
 	if err != nil {
 		return 0, false, fmt.Errorf("can't get TREE module: %w", err)
@@ -128,7 +128,7 @@ func (oi *OnlineconfInstance) GetString(path string, d ...string) (string, error
 // It returns this value if the parameter exists and is an integer.
 // In the other case it panics unless default value is provided in
 // the second argument.
-func (oi *OnlineconfInstance) GetInt(path string, d ...int) (int, error) {
+func (oi *OnlineconfInstance) GetInt(path string, d ...int64) (int64, error) {
 	m, err := oi.GetOrAddModule(DefaultModule)
 	if err != nil {
 		return 0, fmt.Errorf("can't get TREE module: %w", err)

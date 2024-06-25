@@ -2,7 +2,9 @@ package onlineconf
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -12,7 +14,7 @@ import (
 	"golang.org/x/exp/mmap"
 )
 
-func (m *Module) Clone(name string) onlineconfInterface.Module {
+func (m *Module) Clone(name string) onlineconfInterface.Module { //nolint:ireturn
 	return &Module{
 		ro:          true,
 		name:        name,
@@ -51,14 +53,14 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 				continue
 			}
 
-			new, newErr := cdb.Get([]byte(path))
-			old, oldErr := m.cdb.Get([]byte(path))
+			newValue, newErr := cdb.Get([]byte(path))
+			oldValue, oldErr := m.cdb.Get([]byte(path))
 
-			if newErr != oldErr {
+			if errors.Is(newErr, oldErr) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-			} else if len(new) != len(old) {
+			} else if len(newValue) != len(oldValue) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-			} else if len(new) > 0 && string(new) != string(old) {
+			} else if len(newValue) > 0 && string(newValue) != string(oldValue) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			}
 		}
@@ -75,7 +77,11 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 	m.Unlock()
 
 	for _, callback := range callbacksToCall {
-		callback()
+		err := callback()
+		if err != nil {
+			// ToDo use app logger instance
+			log.Printf("error in callback: %s", err)
+		}
 	}
 
 	return oldMmappedFile, nil
@@ -95,7 +101,7 @@ func (m *Module) get(path string) (byte, []byte, error) {
 	data, err := m.cdb.Get([]byte(path))
 	if err != nil || len(data) == 0 {
 		if err != nil {
-			return 0, data, fmt.Errorf("get %v:%v error: %v", m.filename, path, err)
+			return 0, data, fmt.Errorf("get %v:%v error: %w", m.filename, path, err)
 		}
 
 		return 0, data, nil
@@ -126,7 +132,7 @@ func (m *Module) GetStringIfExists(path string) (string, bool, error) {
 // GetIntIfExists reads an integer value of a named parameter from the module.
 // It returns this value and the boolean true if the parameter exists and is an integer.
 // In the other case it returns the boolean false and 0.
-func (m *Module) GetIntIfExists(path string) (int, bool, error) {
+func (m *Module) GetIntIfExists(path string) (int64, bool, error) {
 	str, ok, err := m.GetStringIfExists(path)
 	if err != nil {
 		return 0, false, err
@@ -136,7 +142,7 @@ func (m *Module) GetIntIfExists(path string) (int, bool, error) {
 		return 0, false, nil
 	}
 
-	i, err := strconv.Atoi(str)
+	i, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
 		return 0, false, fmt.Errorf("%s:%s: value is not an integer: %s", m.name, path, str)
 	}
@@ -187,7 +193,7 @@ func (m *Module) GetString(path string, d ...string) (string, error) {
 // It returns this value if the parameter exists and is an integer.
 // In the other case it return error unless default value is provided in
 // the second argument.
-func (m *Module) GetInt(path string, d ...int) (int, error) {
+func (m *Module) GetInt(path string, d ...int64) (int64, error) {
 	val, ok, err := m.GetIntIfExists(path)
 	if err != nil {
 		return d[0], err
@@ -257,7 +263,7 @@ func (m *Module) GetStrings(path string, defaultValue []string) ([]string, error
 	case 'j':
 		err := json.Unmarshal(data, &value)
 		if err != nil {
-			return nil, fmt.Errorf("%s:%s: failed to unmarshal JSON: %s", m.name, path, err)
+			return nil, fmt.Errorf("%s:%s: failed to unmarshal JSON: %w", m.name, path, err)
 		}
 
 		m.setCache(path, rv)
@@ -288,7 +294,6 @@ func (m *Module) GetStruct(path string, value interface{}) (bool, error) {
 		} else {
 			errMsg = fmt.Sprintf("%s: GetStruct(%q, nil): invalid argument", m.name, path)
 		}
-
 	} else if rv.IsNil() {
 		errMsg = fmt.Sprintf("%s: GetStruct(%q, nil %s): invalid argument", m.name, path, rv.Type())
 	}

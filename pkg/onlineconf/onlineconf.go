@@ -19,7 +19,7 @@ import (
 var initMutex sync.Mutex
 
 // Initialize sets config directory for onlineconf modules.
-func Create(options ...onlineconfInterface.Option) onlineconfInterface.Instance {
+func Create(options ...onlineconfInterface.Option) *OnlineconfInstance {
 	initMutex.Lock()
 	defer initMutex.Unlock()
 
@@ -72,7 +72,7 @@ func (oi *OnlineconfInstance) StartWatcher(ctx context.Context) error {
 		return ErrUnavailableInRO
 	}
 
-	if err := oi.watcher.start(oi.configDir, oi.watcherCallback(ctx), func(err error) { oi.logger.Error(ctx, "watcher error", err) }); err != nil {
+	if err := oi.watcher.start(ctx, oi.configDir, oi.watcherCallback(ctx), func(err error) { oi.logger.Error(ctx, "watcher error", err) }); err != nil {
 		return fmt.Errorf("can't start watcher: %w", err)
 	}
 
@@ -152,12 +152,16 @@ func (oi *OnlineconfInstance) watcherCallback(ctx context.Context) func(ev fsnot
 				oldMmaped, err := module.Reopen(mmappedFile)
 
 				if err != nil {
-					oi.decRefcount(mmappedFile)
-					oi.logger.Error(ctx, "error inc refcunt mmap:", err)
+					oi.logger.Error(ctx, "error inc refcount mmap:", err)
+					err = oi.decRefcount(mmappedFile)
+					oi.logger.Error(ctx, "error dec refcount mmap after error:", err)
 					return
 				}
 
-				oi.decRefcount(oldMmaped)
+				err = oi.decRefcount(oldMmaped)
+				if err != nil {
+					oi.logger.Error(ctx, "error dec refcount old mmap:", err)
+				}
 			}
 		}
 	}
@@ -181,7 +185,7 @@ func (oi *OnlineconfInstance) openMmapFile(path string) (*mmap.ReaderAt, error) 
 	return mmappedFile, nil
 }
 
-func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (onlineconfInterface.Module, bool) {
+func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (onlineconfInterface.Module, bool) { //nolint:ireturn
 	if oi.ro {
 		// don't copy for faster
 		panic("unable to use GetByFile in readonly instance")
@@ -196,7 +200,7 @@ func (oi *OnlineconfInstance) GetModuleByFile(fileName string) (onlineconfInterf
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) GetModule(name string) onlineconfInterface.Module {
+func (oi *OnlineconfInstance) GetModule(name string) onlineconfInterface.Module { //nolint:ireturn
 	oi.Lock()
 	defer oi.Unlock()
 
@@ -208,7 +212,7 @@ func (oi *OnlineconfInstance) GetModule(name string) onlineconfInterface.Module 
 }
 
 // GetModule returns a named module.
-func (oi *OnlineconfInstance) GetOrAddModule(name string) (onlineconfInterface.Module, error) {
+func (oi *OnlineconfInstance) GetOrAddModule(name string) (onlineconfInterface.Module, error) { //nolint:ireturn
 	oi.Lock()
 	defer oi.Unlock()
 
@@ -240,7 +244,7 @@ func (oi *OnlineconfInstance) GetOrAddModule(name string) (onlineconfInterface.M
 	return ocModule, nil
 }
 
-func (oi *OnlineconfInstance) Clone() (onlineconfInterface.Instance, error) {
+func (oi *OnlineconfInstance) Clone() (onlineconfInterface.Instance, error) { //nolint:ireturn
 	if oi.ro {
 		return nil, fmt.Errorf("can't clone RO instance")
 	}
@@ -273,7 +277,7 @@ func (oi *OnlineconfInstance) Clone() (onlineconfInterface.Instance, error) {
 	return newInstance, nil
 }
 
-func (oi *OnlineconfInstance) Release(cloned onlineconfInterface.Instance) error {
+func (oi *OnlineconfInstance) Release(ctx context.Context, cloned onlineconfInterface.Instance) error {
 	if oi.ro {
 		return fmt.Errorf("invalid main instance (RO)")
 	}
@@ -288,7 +292,10 @@ func (oi *OnlineconfInstance) Release(cloned onlineconfInterface.Instance) error
 
 	for _, name := range clonedInstance.GetModuleNames() {
 		m := cloned.GetModule(name)
-		oi.decRefcount(m.GetMmappedFile())
+		err := oi.decRefcount(m.GetMmappedFile())
+		if err != nil {
+			oi.logger.Error(ctx, "error dec refcount mmap after release: %w", err)
+		}
 	}
 
 	clonedInstance.names = []string{}

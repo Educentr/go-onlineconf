@@ -22,7 +22,8 @@ func TestReopenWaiter(t *testing.T) {
 	onlineconf_dev.GenerateCDB(tmpDir, "TREE", testConfig)
 
 	inst := onlineconf.Create(onlineconf.WithConfigDir(tmpDir))
-	inst.StartWatcher(context.Background())
+	err := inst.StartWatcher(context.Background())
+	require.NoError(t, err, "can't start watcher")
 
 	val, err := inst.GetString("/some/log/level")
 	require.NoError(t, err, "can't get string")

@@ -59,7 +59,7 @@ func Release(main, cloned context.Context) error {
 		return fmt.Errorf("can't get cloned instance from context")
 	}
 
-	return mainInstance.Release(clonedInstance)
+	return mainInstance.Release(main, clonedInstance)
 }
 
 func StartWatcher(ctx context.Context) error {
@@ -89,7 +89,7 @@ func RegisterSubscription(ctx context.Context, module string, params []string, c
 	return instance.RegisterSubscription(module, params, callback)
 }
 
-func GetModule(ctx context.Context, name string) (onlineconfInterface.Module, error) {
+func GetModule(ctx context.Context, name string) (onlineconfInterface.Module, error) { //nolint:ireturn
 	instance := FromContext(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("can't get instance from context")
@@ -98,7 +98,7 @@ func GetModule(ctx context.Context, name string) (onlineconfInterface.Module, er
 	return instance.GetModule(name), nil
 }
 
-func GetOrAddModule(ctx context.Context, name string) (onlineconfInterface.Module, error) {
+func GetOrAddModule(ctx context.Context, name string) (onlineconfInterface.Module, error) { //nolint:ireturn
 	instance := FromContext(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("can't get instance from context")

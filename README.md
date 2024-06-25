@@ -29,7 +29,7 @@ Getting go-onlineconf instance from context. If can't when receive error.
 
     v, ex, err := onlineconf.GetStringIfExists(ctx, "/testapp/bla")
     if err != nil {
-        fmt.Printf("Error while geting param: %s\n", err)
+        fmt.Printf("Error while getting param: %s\n", err)
         return
     }
 
@@ -60,7 +60,7 @@ Instance of go-onlinecof has many methods for comunicate with him
     v, ex, err := oc.GetStringIfExists("/testapp/bla")
 
     if err != nil {
-        fmt.Printf("Error while geting param: %s\n", err)
+        fmt.Printf("Error while getting param: %s\n", err)
         return
     }
 
@@ -89,13 +89,13 @@ The go-onlineconf supports modules. All previous example works with default modu
 
     m, err := GetOrAddModule(ctx, "module1")
     if err != nil {
-        fmt.Printf("Error while geting module: %s\n", err)
+        fmt.Printf("Error while getting module: %s\n", err)
         return
     }
 
     v, err := m.GetString("bla")
     if err != nil {
-        fmt.Printf("Error while geting param: %s\n", err)
+        fmt.Printf("Error while getting param: %s\n", err)
         return
     }
 
@@ -107,13 +107,13 @@ The go-onlineconf supports modules. All previous example works with default modu
 
     m, err := instance.GetOrAddModule("module1")
     if err != nil {
-        fmt.Printf("Error while geting module: %s\n", err)
+        fmt.Printf("Error while getting module: %s\n", err)
         return
     }
 
     v, err := m.GetString("bla")
     if err != nil {
-        fmt.Printf("Error while geting param: %s\n", err)
+        fmt.Printf("Error while getting param: %s\n", err)
         return
     }
 

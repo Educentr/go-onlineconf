@@ -10,6 +10,10 @@ race:
 lint:
 	@golangci-lint run
 
+.PHONY: install-lint
+install-lint:
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+
 .PHONY: coverage
 coverage:
 	@cat .cover | grep -v "_mock.go" | grep -v "_gen.go" | grep -v "module.go" | grep -v "test" > .cover_shrink

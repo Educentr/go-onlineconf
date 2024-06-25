@@ -10,7 +10,7 @@ func (o options) Apply(oi onlineconfInterface.Instance) {
 	o(oi)
 }
 
-func WithLogger(logger onlineconfInterface.Logger) onlineconfInterface.Option {
+func WithLogger(logger onlineconfInterface.Logger) options {
 	return options(func(oii onlineconfInterface.Instance) {
 		oi, ok := oii.(*OnlineconfInstance)
 		if !ok {
@@ -21,7 +21,7 @@ func WithLogger(logger onlineconfInterface.Logger) onlineconfInterface.Option {
 	})
 }
 
-func WithConfigDir(path string) onlineconfInterface.Option {
+func WithConfigDir(path string) options {
 	return options(func(oii onlineconfInterface.Instance) {
 		oi, ok := oii.(*OnlineconfInstance)
 		if !ok {
@@ -32,7 +32,7 @@ func WithConfigDir(path string) onlineconfInterface.Option {
 	})
 }
 
-func WithModules(moduleNames []string, required bool) onlineconfInterface.Option {
+func WithModules(moduleNames []string, required bool) options {
 	return options(func(oi onlineconfInterface.Instance) {
 		for _, moduleName := range moduleNames {
 			m, err := oi.GetOrAddModule(moduleName)

@@ -16,7 +16,7 @@ type OnlineconfWatcher struct {
 	path      string
 }
 
-func (ow *OnlineconfWatcher) start(path string, callback func(fsnotify.Event), errorCallback func(error)) error {
+func (ow *OnlineconfWatcher) start(ctx context.Context, path string, callback func(fsnotify.Event), errorCallback func(error)) error {
 	ow.Lock()
 	defer ow.Unlock()
 
@@ -44,7 +44,7 @@ func (ow *OnlineconfWatcher) start(path string, callback func(fsnotify.Event), e
 
 	var watcherCtx context.Context
 
-	watcherCtx, ow.cancelCtx = context.WithCancel(context.Background())
+	watcherCtx, ow.cancelCtx = context.WithCancel(ctx)
 
 	ow.doneChan = make(chan struct{})
 

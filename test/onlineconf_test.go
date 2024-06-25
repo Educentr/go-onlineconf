@@ -16,7 +16,10 @@ func BenchmarkClone(b *testing.B) {
 	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
 	var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
 	for i := 0; i < b.N; i++ {
-		onlineconf.Clone(globalCtx, context.Background())
+		_, err := onlineconf.Clone(globalCtx, context.Background())
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -24,7 +27,10 @@ func BenchmarkGetStringIfExistsCtx(b *testing.B) {
 	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
 	var globalCtx, _ = onlineconf.Initialize(context.Background(), onlineconf.WithConfigDir(tmpConfDir))
 	for i := 0; i < b.N; i++ {
-		onlineconf.GetStringIfExists(globalCtx, "bla")
+		_, _, err := onlineconf.GetStringIfExists(globalCtx, "bla")
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -33,7 +39,10 @@ func BenchmarkGetStringIfExistsDirect(b *testing.B) {
 	inst := onlineconf.Create(onlineconf.WithConfigDir(tmpConfDir))
 	m, _ := inst.GetOrAddModule("TREE")
 	for i := 0; i < b.N; i++ {
-		m.GetStringIfExists("bla")
+		_, _, err := m.GetStringIfExists("bla")
+		if err != nil {
+			b.Error(err)
+		}
 	}
 }
 
@@ -77,7 +86,9 @@ func TestGetDefaultModuleB(t *testing.T) {
 
 	status := callbackStatus{}
 
-	onlineconf.RegisterSubscription(globalCtx, "TREE", []string{"bla"}, status.callback)
+	if onlineconf.RegisterSubscription(globalCtx, "TREE", []string{"bla"}, status.callback) != nil {
+		t.Error("error register subscription")
+	}
 
 	newCtx := context.Background()
 	newCtx, _ = onlineconf.Clone(globalCtx, newCtx)
@@ -107,7 +118,10 @@ func TestGetDefaultModuleB(t *testing.T) {
 		t.Error("invalid value", v)
 	}
 
-	onlineconf.Release(globalCtx, newCtx)
+	err = onlineconf.Release(globalCtx, newCtx)
+	if err != nil {
+		t.Errorf("error module release")
+	}
 
 	m := onlineconf.FromContext(newCtx).GetModule("TREE")
 	if m != nil {
