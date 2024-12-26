@@ -2,6 +2,7 @@ package onlineconfInterface
 
 import (
 	"context"
+	"time"
 
 	"golang.org/x/exp/mmap"
 )
@@ -24,9 +25,11 @@ type SubscriptionCallback interface {
 type Module interface {
 	GetStringIfExists(string) (string, bool, error)
 	GetIntIfExists(string) (int64, bool, error)
+	GetDurationIfExists(string) (time.Duration, bool, error)
 	GetBoolIfExists(string) (bool, bool, error)
 	GetString(string, ...string) (string, error)
 	GetInt(string, ...int64) (int64, error)
+	GetDuration(string, ...time.Duration) (time.Duration, error)
 	GetBool(string, ...bool) (bool, error)
 	GetStrings(string, []string) ([]string, error)
 	GetStruct(string, interface{}) (bool, error)
@@ -47,9 +50,11 @@ type Instance interface {
 	GetOrAddModule(string) (Module, error)
 	GetStringIfExists(string) (string, bool, error)
 	GetIntIfExists(string) (int64, bool, error)
+	GetDurationIfExists(string) (time.Duration, bool, error)
 	GetBoolIfExists(string) (bool, bool, error)
 	GetString(string, ...string) (string, error)
 	GetInt(string, ...int64) (int64, error)
+	GetDuration(string, ...time.Duration) (time.Duration, error)
 	GetBool(string, ...bool) (bool, error)
 	GetStrings(string, []string) ([]string, error)
 	GetStruct(string, interface{}) (bool, error)

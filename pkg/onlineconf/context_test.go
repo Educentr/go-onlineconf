@@ -3,9 +3,11 @@ package onlineconf
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/exp/mmap"
 )
 
@@ -202,4 +204,28 @@ func TestInitialize(t *testing.T) {
 	if oi == nil {
 		t.Error("Expected OnlineconfInstance value in the context, but got nil")
 	}
+}
+
+func TestEnvConfig(t *testing.T) {
+	ctx := context.Background()
+
+	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
+	defer os.RemoveAll(tmpConfDir)
+
+	// Call the EnvConfig function
+	os.Setenv("ONLINECONFIG_FROM_ENV", "true")
+	os.Setenv("OC_TEST", "test")
+	os.Setenv("OC_TEST__TEST", "test2")
+
+	// Call the Initialize function
+	newCtx, err := Initialize(ctx, WithConfigDir(tmpConfDir))
+	assert.NoError(t, err)
+
+	testParam, err := GetString(newCtx, "/TEST", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "test", testParam)
+
+	test2Param, err := GetString(newCtx, "/TEST/TEST", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "test2", test2Param)
 }

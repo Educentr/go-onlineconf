@@ -3,8 +3,11 @@ package onlineconf
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
+	"github.com/Educentr/go-onlineconf/pkg/onlineconf_dev"
 )
 
 type ctxKey uint8
@@ -32,7 +35,21 @@ func FromContext(ctx context.Context) *OnlineconfInstance {
 // Initialize sets config directory for onlineconf modules.
 // Default value is "/usr/local/etc/onlineconf"
 func Initialize(ctx context.Context, options ...onlineconfInterface.Option) (context.Context, error) {
-	return ToContext(ctx, Create(options...)), nil
+	cfgInst := Create(options...)
+
+	if os.Getenv("ONLINECONFIG_FROM_ENV") != "" {
+		cnf := map[string]any{}
+		for _, e := range os.Environ() {
+			pair := strings.SplitN(e, "=", 2)
+			if strings.HasPrefix(pair[0], "OC_") {
+				cnf[MakePath(strings.Split(pair[0][3:], "__")...)] = pair[1]
+			}
+		}
+
+		onlineconf_dev.GenerateCDB(cfgInst.GetConfigDir(), DefaultModule, cnf)
+	}
+
+	return ToContext(ctx, cfgInst), nil
 }
 
 func Clone(from, to context.Context) (context.Context, error) {

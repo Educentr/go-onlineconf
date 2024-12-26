@@ -3,6 +3,7 @@ package onlineconf
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // GetStringIfExists reads a string value of a named parameter from the module "TREE".
@@ -17,6 +18,13 @@ func GetStringIfExists(ctx context.Context, path string) (string, bool, error) {
 // In the other case it returns the boolean false and 0.
 func GetIntIfExists(ctx context.Context, path string) (int64, bool, error) {
 	return FromContext(ctx).GetIntIfExists(path)
+}
+
+// GetDurationIfExists reads an string value of a named parameter from the module "TREE" and parse it to time.Duration.
+// It returns this value and the boolean true if the parameter exists and is an integer.
+// In the other case it returns the boolean false and 0.
+func GetDurationIfExists(ctx context.Context, path string) (time.Duration, bool, error) {
+	return FromContext(ctx).GetDurationIfExists(path)
 }
 
 // GetBoolIfExists reads an bool value of a named parameter from the module "TREE".
@@ -40,6 +48,14 @@ func GetString(ctx context.Context, path string, d ...string) (string, error) {
 // the second argument.
 func GetInt(ctx context.Context, path string, d ...int64) (int64, error) {
 	return FromContext(ctx).GetInt(path, d...)
+}
+
+// GetDuration reads an string value and parse to time.Duration of a named parameter from the module "TREE".
+// It returns this value if the parameter exists and is an integer.
+// In the other case it panics unless default value is provided in
+// the second argument.
+func GetDuration(ctx context.Context, path string, d ...time.Duration) (time.Duration, error) {
+	return FromContext(ctx).GetDuration(path, d...)
 }
 
 // GetBool reads an bool value of a named parameter from the module "TREE".
@@ -97,6 +113,18 @@ func (oi *OnlineconfInstance) GetIntIfExists(path string) (int64, bool, error) {
 	return m.GetIntIfExists(path)
 }
 
+// GetIntIfExists reads an integer value of a named parameter from the module "TREE".
+// It returns this value and the boolean true if the parameter exists and is an integer.
+// In the other case it returns the boolean false and 0.
+func (oi *OnlineconfInstance) GetDurationIfExists(path string) (time.Duration, bool, error) {
+	m, err := oi.GetOrAddModule(DefaultModule)
+	if err != nil {
+		return 0, false, fmt.Errorf("can't get TREE module: %w", err)
+	}
+
+	return m.GetDurationIfExists(path)
+}
+
 // GetBoolIfExists reads an bool value of a named parameter from the module "TREE".
 // It returns this value and the boolean true if the parameter exists and is a bool.
 // In the other case it returns the boolean false and 0.
@@ -135,6 +163,19 @@ func (oi *OnlineconfInstance) GetInt(path string, d ...int64) (int64, error) {
 	}
 
 	return m.GetInt(path, d...)
+}
+
+// GetDuration reads an string value of a named parameter from the module "TREE" and parse it to time.Duration.
+// It returns this value if the parameter exists and is an integer.
+// In the other case it panics unless default value is provided in
+// the second argument.
+func (oi *OnlineconfInstance) GetDuration(path string, d ...time.Duration) (time.Duration, error) {
+	m, err := oi.GetOrAddModule(DefaultModule)
+	if err != nil {
+		return 0, fmt.Errorf("can't get TREE module: %w", err)
+	}
+
+	return m.GetDuration(path, d...)
 }
 
 // GetBool reads an bool value of a named parameter from the module "TREE".

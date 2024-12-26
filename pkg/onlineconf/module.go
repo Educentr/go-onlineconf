@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Educentr/go-onlineconf/pkg/onlineconfInterface"
 	"github.com/colinmarc/cdb"
@@ -150,6 +151,28 @@ func (m *Module) GetIntIfExists(path string) (int64, bool, error) {
 	return i, true, nil
 }
 
+// GetDuration reads an string value of a named parameter from the module and parse it to time.Duration.
+// It returns this value if the parameter exists and is an time.Duration.
+// In the other case it return error unless default value is provided in
+// the second argument.
+func (m *Module) GetDurationIfExists(path string) (time.Duration, bool, error) {
+	str, ok, err := m.GetStringIfExists(path)
+	if err != nil {
+		return 0, false, err
+	}
+
+	if !ok {
+		return 0, false, err
+	}
+
+	dur, err := time.ParseDuration(str)
+	if err != nil {
+		return 0, false, fmt.Errorf("%s:%s: value is not a duration: %s", m.name, path, str)
+	}
+
+	return dur, true, nil
+}
+
 // GetBoolIfExists reads an integer value of a named parameter from the module.
 // It returns this value and the boolean true if the parameter exists and is an bool.
 // In the other case it returns the boolean false and 0.
@@ -195,6 +218,25 @@ func (m *Module) GetString(path string, d ...string) (string, error) {
 // the second argument.
 func (m *Module) GetInt(path string, d ...int64) (int64, error) {
 	val, ok, err := m.GetIntIfExists(path)
+	if err != nil {
+		return d[0], err
+	}
+
+	if ok {
+		return val, nil
+	} else if len(d) > 0 {
+		return d[0], nil
+	} else {
+		return 0, fmt.Errorf("%s:%s key not exists and default not found", m.name, path)
+	}
+}
+
+// GetDuration reads an string value of a named parameter from the module and parse it to time.Duration.
+// It returns this value if the parameter exists and is an time.Duration.
+// In the other case it return error unless default value is provided in
+// the second argument.
+func (m *Module) GetDuration(path string, d ...time.Duration) (time.Duration, error) {
+	val, ok, err := m.GetDurationIfExists(path)
 	if err != nil {
 		return d[0], err
 	}
