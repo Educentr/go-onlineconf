@@ -1,0 +1,86 @@
+site_name: go-onlineconf
+site_description: Go-клиент для чтения конфигурационных файлов OnlineConf (CDB)
+site_url: https://educentr.github.io/go-onlineconf/
+
+repo_name: Educentr/go-onlineconf
+repo_url: https://github.com/Educentr/go-onlineconf
+
+theme:
+  name: material
+  language: ru
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Тёмная тема
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Светлая тема
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: ru
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Главная: index.md
+  - Начало работы:
+    - getting-started/index.md
+    - Установка: getting-started/installation.md
+    - Быстрый старт: getting-started/quickstart.md
+  - Архитектура:
+    - architecture/index.md
+    - Модули и CDB: architecture/modules.md
+    - Watcher и подписки: architecture/watcher.md
+    - Clone/Release: architecture/clone-release.md
+  - Использование:
+    - usage/index.md
+    - Context API: usage/context-api.md
+    - Instance API: usage/instance-api.md
+    - Типы данных: usage/data-types.md
+  - Справочник:
+    - reference/cli.md
+    - reference/options.md
+    - reference/env.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Educentr/go-onlineconf
