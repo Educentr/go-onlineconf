@@ -1,8 +1,8 @@
 package onlineconf
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -46,23 +46,33 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 	for _, subscription := range m.changeSubscription {
 		if subscription.GetPaths() == nil {
 			callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
+			continue
 		}
 
 		for _, path := range subscription.GetPaths() {
 			if path == "" {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-				continue
+				break
 			}
 
 			newValue, newErr := cdb.Get([]byte(path))
 			oldValue, oldErr := m.cdb.Get([]byte(path))
 
-			if errors.Is(newErr, oldErr) {
+			// If one read errored and the other didn't, the state changed
+			if (newErr != nil) != (oldErr != nil) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-			} else if len(newValue) != len(oldValue) {
+				break
+			}
+
+			// If both errored, skip comparison for this path
+			if newErr != nil {
+				continue
+			}
+
+			// Both reads succeeded — compare actual byte content
+			if !bytes.Equal(newValue, oldValue) {
 				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
-			} else if len(newValue) > 0 && string(newValue) != string(oldValue) {
-				callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
+				break
 			}
 		}
 	}
