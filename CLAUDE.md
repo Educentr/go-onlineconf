@@ -67,7 +67,7 @@ GitHub Actions workflow (`.github/workflows/makefile.yml`) runs on push/PR to ma
 
 **OnlineconfInstance** (`pkg/onlineconf/const.go`, `pkg/onlineconf/onlineconf.go`) - Central instance managing a set of named modules. Handles module lifecycle, mmap reference counting, watcher integration, and clone/release semantics. Instances can be readonly (cloned) - readonly instances cannot register modules, start watchers, or modify refcounts.
 
-**Module** (`pkg/onlineconf/const.go`, `pkg/onlineconf/module.go`) - Represents a single named CDB file. Provides typed getters (String, Int, Bool, Duration, Strings, Struct), internal result caching with `reflect.Value`, and subscription-based change detection on Reopen. Modules also support readonly mode.
+**Module** (`pkg/onlineconf/const.go`, `pkg/onlineconf/module.go`) - Represents a single named CDB file. Provides typed getters (String, Int, Bool, Duration, Strings, Struct), internal result caching with `reflect.Value`, and subscription-based change detection on Reopen. On Reopen, subscribed paths are compared byte-by-byte (`bytes.Equal`) between old and new CDB; callbacks fire only when values actually differ and at most once per subscription per reopen. Modules also support readonly mode.
 
 **OnlineconfWatcher** (`pkg/onlineconf/watcher.go`) - Wraps fsnotify to watch the config directory. On `fsnotify.Create` events (onlineconf-updater atomically replaces files), triggers module reopen with new mmap and old mmap refcount decrement.
 

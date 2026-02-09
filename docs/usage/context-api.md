@@ -54,9 +54,19 @@ val, err := module.GetString("/param")
 // Запуск
 err := onlineconf.StartWatcher(ctx)
 
-// Подписка на изменения
+// Подписка на изменения конкретного параметра.
+// Callback вызывается только если значение /app/flag реально изменилось.
 onlineconf.RegisterSubscription(ctx, "TREE", []string{"/app/flag"}, func() error {
-    log.Println("flag changed")
+    // Можно безопасно читать конфигурацию внутри callback
+    val, _ := onlineconf.GetString(ctx, "/app/flag")
+    log.Println("flag changed to", val)
+    return nil
+})
+
+// Подписка на несколько путей — callback вызывается максимум один раз,
+// если хотя бы один из путей изменился.
+onlineconf.RegisterSubscription(ctx, "TREE", []string{"/app/rate", "/app/limit"}, func() error {
+    log.Println("rate or limit changed")
     return nil
 })
 

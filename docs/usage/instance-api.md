@@ -43,8 +43,17 @@ val, err := module.GetString("/param")
 err := oc.StartWatcher(ctx)
 defer oc.StopWatcher()
 
+// Callback вызывается только если значение /app/flag реально изменилось.
 oc.RegisterSubscription("TREE", []string{"/app/flag"}, func() error {
-    log.Println("flag changed")
+    val, _ := oc.GetString("/app/flag")
+    log.Println("flag changed to", val)
+    return nil
+})
+
+// Подписка на несколько путей — callback вызывается максимум один раз,
+// если хотя бы один из путей изменился.
+oc.RegisterSubscription("TREE", []string{"/app/rate", "/app/limit"}, func() error {
+    log.Println("rate or limit changed")
     return nil
 })
 ```
