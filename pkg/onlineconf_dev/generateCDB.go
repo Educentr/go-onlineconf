@@ -33,6 +33,14 @@ func GenerateCDB(dir, modulename string, m map[string]interface{}) {
 
 	modulename += ".cdb"
 
+	// Ensure the target directory exists. In ONLINECONFIG_FROM_ENV mode the
+	// caller passes a config dir that may not exist yet (e.g. a per-user cache
+	// path); cdb.Create only opens the file, so without this a missing dir is a
+	// hard log.Fatal on first run. MkdirAll is a no-op when the dir is present.
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Fatal(err)
+	}
+
 	writer, err := cdb.Create(path.Join(dir, modulename+".tmp"))
 	if err != nil {
 		log.Fatal(err)
