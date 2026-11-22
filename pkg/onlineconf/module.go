@@ -30,21 +30,59 @@ func (m *Module) GetMmappedFile() *mmap.ReaderAt {
 	return m.mmappedFile
 }
 
+// Reopen replaces the CDB of the module with the one backed by mmappedFile and returns
+// the previously used mmap.ReaderAt so that the caller can release it.
+//
+// The new CDB is parsed before the write lock is taken: a corrupt or truncated file makes
+// Reopen fail without touching the module and without ever locking it, so readers keep
+// getting the values of the previous CDB instead of blocking forever on a leaked lock.
+// Change subscription callbacks are invoked after the lock is released.
 func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 	if m.ro {
 		return nil, fmt.Errorf("unable to use Reopen in readonly instance")
 	}
 
-	m.Lock()
-
-	cdb, err := cdb.New(mmappedFile, nil)
+	newCdb, err := cdb.New(mmappedFile, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("can't open cdb %s: %w", m.filename, err)
 	}
 
-	callbacksToCall := []func() error{}
+	m.Lock()
+
+	callbacksToCall := m.changedSubscriptions(newCdb)
+
+	oldMmappedFile := m.mmappedFile
+	m.mmappedFile = mmappedFile
+	m.cdb = newCdb
+
+	m.cacheMutex.Lock()
+	m.cache = map[string][]interface{}{}
+	m.cacheMutex.Unlock()
+
+	m.Unlock()
+
+	for _, callback := range callbacksToCall {
+		err := callback()
+		if err != nil {
+			// ToDo use app logger instance
+			log.Printf("error in callback: %s", err)
+		}
+	}
+
+	return oldMmappedFile, nil
+}
+
+// changedSubscriptions returns the callbacks of the subscriptions whose values differ
+// between the current CDB of the module and newCdb. A subscription without paths (or with
+// an empty path) is always considered changed, and every subscription yields at most one
+// callback. The write lock of the module must be held by the caller.
+func (m *Module) changedSubscriptions(newCdb *cdb.CDB) []func() error {
+	callbacksToCall := make([]func() error, 0, len(m.changeSubscription))
+
 	for _, subscription := range m.changeSubscription {
-		if subscription.GetPaths() == nil {
+		// On the initial open there is nothing to compare against, so every subscribed
+		// path counts as changed.
+		if subscription.GetPaths() == nil || m.cdb == nil {
 			callbacksToCall = append(callbacksToCall, subscription.InvokeCallback)
 			continue
 		}
@@ -55,7 +93,7 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 				break
 			}
 
-			newValue, newErr := cdb.Get([]byte(path))
+			newValue, newErr := newCdb.Get([]byte(path))
 			oldValue, oldErr := m.cdb.Get([]byte(path))
 
 			// If one read errored and the other didn't, the state changed
@@ -77,25 +115,7 @@ func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 		}
 	}
 
-	oldMmappedFile := m.mmappedFile
-	m.mmappedFile = mmappedFile
-	m.cdb = cdb
-
-	m.cacheMutex.Lock()
-	m.cache = map[string][]interface{}{}
-	m.cacheMutex.Unlock()
-
-	m.Unlock()
-
-	for _, callback := range callbacksToCall {
-		err := callback()
-		if err != nil {
-			// ToDo use app logger instance
-			log.Printf("error in callback: %s", err)
-		}
-	}
-
-	return oldMmappedFile, nil
+	return callbacksToCall
 }
 
 func (m *Module) RegisterSubscription(subscription onlineconfInterface.SubscriptionCallback) {
