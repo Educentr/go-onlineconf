@@ -33,13 +33,21 @@ func (m *Module) GetMmappedFile() *mmap.ReaderAt {
 // Reopen replaces the CDB of the module with the one backed by mmappedFile and returns
 // the previously used mmap.ReaderAt so that the caller can release it.
 //
-// The new CDB is parsed before the write lock is taken: a corrupt or truncated file makes
-// Reopen fail without touching the module and without ever locking it, so readers keep
-// getting the values of the previous CDB instead of blocking forever on a leaked lock.
+// The new file is validated and parsed before the write lock is taken: a corrupt, truncated
+// or unfinished file makes Reopen fail with ErrInvalidCDB without touching the module and
+// without ever locking it, so readers keep getting the values of the previous CDB instead of
+// blocking forever on a leaked lock or getting an error on every single read.
 // Change subscription callbacks are invoked after the lock is released.
 func (m *Module) Reopen(mmappedFile *mmap.ReaderAt) (*mmap.ReaderAt, error) {
 	if m.ro {
 		return nil, fmt.Errorf("unable to use Reopen in readonly instance")
+	}
+
+	// cdb.New only reads the index, so the file has to be checked as a whole: an index that
+	// describes tables outside of the file is opened without an error and fails later, on
+	// every read of the module.
+	if err := validateCDB(mmappedFile, mmappedFile.Len()); err != nil {
+		return nil, fmt.Errorf("can't open cdb %s: %w", m.filename, err)
 	}
 
 	newCdb, err := cdb.New(mmappedFile, nil)
