@@ -212,10 +212,11 @@ func TestEnvConfig(t *testing.T) {
 	tmpConfDir, _ := os.MkdirTemp("", "onlineconf*")
 	defer os.RemoveAll(tmpConfDir)
 
-	// Call the EnvConfig function
-	os.Setenv("ONLINECONFIG_FROM_ENV", "true")
-	os.Setenv("OC_TEST", "test")
-	os.Setenv("OC_TEST__TEST", "test2")
+	// Call the EnvConfig function. t.Setenv restores the variables afterwards so that the
+	// env based initialization does not leak into the other tests of the package.
+	t.Setenv("ONLINECONFIG_FROM_ENV", "true")
+	t.Setenv("OC_TEST", "test")
+	t.Setenv("OC_TEST__TEST", "test2")
 
 	// Call the Initialize function
 	newCtx, err := Initialize(ctx, WithConfigDir(tmpConfDir))
