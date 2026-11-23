@@ -17,6 +17,12 @@ var ErrAddModule = errors.New("add module error")
 var ErrUnavailableInRO = errors.New("unable to use in readonly instance")
 var ErrUnavailableModifyRefcountRO = errors.New("can't modify refcount in RO instance")
 
+// ErrInvalidCDB is reported when a file is not usable as a CDB database: it is either not a
+// CDB at all or an incomplete one, e.g. left by an interrupted rebuild. Such a file is
+// rejected instead of being adopted by a module, so the errors a caller can get it from are
+// Reopen and GetOrAddModule.
+var ErrInvalidCDB = errors.New("invalid cdb file")
+
 const defaultConfigDir = "/usr/local/etc/onlineconf"
 const DefaultModule = "TREE"
 

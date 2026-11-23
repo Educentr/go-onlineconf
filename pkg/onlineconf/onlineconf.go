@@ -7,6 +7,7 @@ package onlineconf
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"sync"
@@ -150,11 +151,16 @@ func (oi *OnlineconfInstance) watcherCallback(ctx context.Context) func(ev fsnot
 				}
 
 				oldMmaped, err := module.Reopen(mmappedFile)
-
 				if err != nil {
-					oi.logger.Error(ctx, "error inc refcount mmap:", err)
-					err = oi.decRefcount(mmappedFile)
-					oi.logger.Error(ctx, "error dec refcount mmap after error:", err)
+					// The file onlineconf-updater has just written is unusable (e.g. a
+					// corrupt or partially written CDB). The module keeps serving the
+					// values of its previous file, so only the new mmap is released.
+					oi.logger.Error(ctx, "error reopen module:", err)
+
+					if decErr := oi.decRefcount(mmappedFile); decErr != nil {
+						oi.logger.Error(ctx, "error dec refcount mmap after failed reopen:", decErr)
+					}
+
 					return
 				}
 
@@ -233,13 +239,20 @@ func (oi *OnlineconfInstance) GetOrAddModule(name string) (onlineconfInterface.M
 		return nil, err
 	}
 
+	// The module is registered only after it has been initialized: a module left in
+	// byName/byFile after a failed Reopen would be handed out to every later caller
+	// without a usable cdb, hiding the error that broke the initialization.
+	if _, err = ocModule.Reopen(mmapedFile); err != nil {
+		if decErr := oi.decRefcount(mmapedFile); decErr != nil {
+			err = errors.Join(err, fmt.Errorf("can't release mmap of module %s: %w", name, decErr))
+		}
+
+		return nil, fmt.Errorf("error add module: %w", err)
+	}
+
 	oi.byFile[filename] = ocModule
 	oi.byName[name] = ocModule
 	oi.names = append(oi.names, name)
-
-	if _, err = ocModule.Reopen(mmapedFile); err != nil {
-		return nil, fmt.Errorf("error add module: %w", err)
-	}
 
 	return ocModule, nil
 }
