@@ -111,8 +111,10 @@ When `ONLINECONFIG_FROM_ENV` is set, `Initialize()` scans environment variables 
 - **golangci-lint**: version pinned by `GOLANGCI_TAG` in the `Makefile` (single source of truth).
   The make targets accept only an *exact* match and otherwise build that version into `./bin`,
   so a golangci-lint of another major version in `PATH` is ignored instead of breaking the run.
-  Building the pinned version needs Go 1.23+, which is why the CI lint job runs on a newer Go
-  than the minimum above.
+  A binary built by a Go toolchain older than the local `go` is rebuilt too: the linter
+  typechecks the stdlib of the local `GOROOT` and would otherwise fail with
+  `file requires newer Go version`. Building the pinned version needs Go 1.23+, which is why
+  the CI lint job runs on a newer Go than the minimum above.
 
 ## Linting Configuration
 
