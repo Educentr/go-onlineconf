@@ -151,8 +151,11 @@ func getWaiter(oc onlineconfInterface.Instance, module string) (*waiter, error) 
 // awaited through a change subscription, so oc has to be watching its config directory
 // (see Instance.StartWatcher) and the module has to be registered in it already.
 //
-// Calls on the same instance and module are serialized; the module of another instance
-// is independent, including when both instances share the config directory.
+// Calls on the same instance and module are serialized. Every instance gets a subscription
+// of its own, so instances with a module of the same name do not wait for each other's
+// reopens. Instances sharing the config directory share the module file as well: a call
+// on one of them changes the configuration of the others, and calls on such instances
+// must not overlap, as they are not serialized and write the same file.
 //
 // It returns an error if the subscription cannot be registered, or "timeout" if the
 // module has not been reopened with the written value within five seconds.
