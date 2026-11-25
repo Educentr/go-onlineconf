@@ -35,7 +35,7 @@ make lint                # Run golangci-lint on changes from origin/main
 make full-lint           # Run golangci-lint on entire codebase
 make lint-fix            # Run linter with auto-fix
 make lint-config-verify  # Check .golangci.yaml against the pinned linter's config schema
-make install-lint        # Build the pinned golangci-lint into ./bin if it is missing
+make install-lint        # Build the pinned golangci-lint into ./bin unless a usable one is found
 ```
 
 ### Development Tools
