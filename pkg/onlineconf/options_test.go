@@ -223,3 +223,23 @@ func TestWithModulesOpensUsableModule(t *testing.T) {
 		})
 	}
 }
+
+// A module skipped by WithModules is not remembered as broken: GetModule keeps returning nil
+// for it, while GetOrAddModule (and the reads that go through it) opens it once its file is
+// there. A failed open must not keep the mmap of the rejected file either.
+func TestWithModulesOptionalSkippedModuleIsOpenedLater(t *testing.T) {
+	dir := t.TempDir()
+	replaceTreeCDB(t, dir, []byte(corruptCDBContent))
+
+	oi := Create(WithConfigDir(dir), WithLogger(&captureLogger{}), WithModules([]string{DefaultModule}, false))
+	assert.Empty(t, oi.mmappedFiles, "the mmap of a module that failed to open must be released")
+
+	onlineconf_dev.GenerateCDB(dir, DefaultModule, map[string]interface{}{cdbTestKey: cdbNewValue})
+
+	assert.Nil(t, oi.GetModule(DefaultModule), "GetModule must not try to open a skipped module")
+
+	v, err := oi.GetString(cdbTestKey, "")
+	require.NoError(t, err)
+	assert.Equal(t, cdbNewValue, v)
+	assert.Equal(t, []string{DefaultModule}, oi.GetModuleNames())
+}
