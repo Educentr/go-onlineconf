@@ -28,10 +28,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Не минимальная поддерживаемая версия (её проверяет job test), а та,
+      # которой install-lint собирает пиннутый golangci-lint: его go.mod
+      # требует go >= 1.23.0, на go 1.21 сборка опиралась бы на автоскачивание
+      # тулчейна. Версию языка для анализа линтер всё равно берёт из go.mod.
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
 
       - name: Run lint
         run: make lint

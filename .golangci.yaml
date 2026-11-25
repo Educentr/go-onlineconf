@@ -1,5 +1,9 @@
+# Формат конфига соответствует мажору golangci-lint из GOLANGCI_TAG в Makefile.
+# При смене пина прогнать `make lint-config-verify` (ловит ключи, которых в новой
+# версии нет) и `make full-lint`: деактивированный линтер в enable роняет run с
+# exit 7, не выдав ни одного замечания, — так из списка ушёл exportloopref.
+# Версия языка для анализа не задаётся: берётся из директивы go в go.mod.
 run:
-  go: '1.20'
   timeout: 30m
 linters:
   disable-all: true
@@ -12,14 +16,12 @@ linters:
     - errcheck
     - errname
     - errorlint
-    - exportloopref
     - forcetypeassert
     - goconst
     - gocritic
     - gofmt
     - ireturn
     - staticcheck
-    - bodyclose
     - makezero
     - misspell
     - prealloc
@@ -28,7 +30,6 @@ linters:
     - whitespace
     - goimports
     - revive
-    - gocritic
 linters-settings:
   lll:
     line-length: 120

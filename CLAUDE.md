@@ -34,7 +34,8 @@ go test ./pkg/onlineconf/... -v -run TestName
 make lint                # Run golangci-lint on changes from origin/main
 make full-lint           # Run golangci-lint on entire codebase
 make lint-fix            # Run linter with auto-fix
-make install-lint        # Force install golangci-lint v1.59.1
+make lint-config-verify  # Check .golangci.yaml against the pinned linter's config schema
+make install-lint        # Build the pinned golangci-lint into ./bin unless a usable one is found
 ```
 
 ### Development Tools
@@ -107,12 +108,19 @@ When `ONLINECONFIG_FROM_ENV` is set, `Initialize()` scans environment variables 
 ## Minimum Requirements
 
 - **Go 1.21.5+** (enforced by `scripts/goversioncheck.sh`)
-- **golangci-lint 1.59.1** (auto-installed by make targets)
+- **golangci-lint**: version pinned by `GOLANGCI_TAG` in the `Makefile` (single source of truth).
+  The make targets accept only an *exact* match and otherwise build that version into `./bin`,
+  so a golangci-lint of another major version in `PATH` is ignored instead of breaking the run.
+  A binary built by a Go toolchain older than the local `go` is rebuilt too: the linter
+  typechecks the stdlib of the local `GOROOT` and would otherwise fail with
+  `file requires newer Go version`. Building the pinned version needs Go 1.23+, which is why
+  the CI lint job runs on a newer Go than the minimum above.
 
 ## Linting Configuration
 
-Configured in `.golangci.yaml`:
-- 23 linters enabled (strict mode with `disable-all: true`)
+Configured in `.golangci.yaml`, in the config format of the pinned linter major version
+(`make lint-config-verify` checks it against that version's schema):
+- 22 linters enabled (strict mode with `disable-all: true`)
 - Line length limit: 120 characters
 - `gocritic` style checks disabled
 - `revive` ignores generated headers
